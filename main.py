@@ -1,10 +1,12 @@
-import aiohttp
 import argparse
 import asyncio
-import colorlog
 import logging
-from async_timeout import timeout
+import json
+from functools import wraps
 
+import aiohttp
+import colorlog
+from async_timeout import timeout
 
 handler = colorlog.StreamHandler()
 handler.setFormatter(colorlog.ColoredFormatter(
@@ -22,15 +24,47 @@ class Bot:
         self.timeout = timeout
         self.updates = Updates(self)
         self.queue = asyncio.Queue()
+        self.handlers = {}
         self._polling = False
 
     @property
     def base_url(self):
         return f'https://api.telegram.org/bot{self.token}'
 
-    async def make_request(self, method):
+    async def dispatch(self, update):
+        handler = self.handlers.get(update['message']['text'])
+        if handler is not None:
+            logger.debug('Dispatching...')
+            result = await handler(update)
+            return result
+        logger.error('Handler not found')
+
+    def on(self, message_text):
+        def decorator(handler):
+            self.handlers[message_text] = handler
+
+            @wraps(handler)
+            def wrapper(*args, **kwargs):
+                return handler(*args, **kwargs)
+
+            return wrapper
+
+        return decorator
+
+    async def reply(self, update, text):
+        # TODO: Recall why exception (KeyError for instance)
+        # is suppressed here and execution just hangs
+        response = await self.make_request(
+            'sendMessage', {'chat_id': update['message']['chat']['id'], 'text': text})
+        logger.debug(response)
+        return response
+
+    async def make_request(self, method, payload=None):
+        url = f'{self.base_url}/{method}'
+        headers = {'content-type': 'application/json'}
+        data = payload and json.dumps(payload)
         async with aiohttp.ClientSession() as client:
-            async with client.get(f'{self.base_url}/{method}') as resp:
+            async with client.post(url, data=data, headers=headers) as resp:
                 logger.debug(resp.status)
                 json_response = await resp.json()
                 logger.debug(json_response)
@@ -44,6 +78,7 @@ class Bot:
                 with timeout(self.timeout / 10):
                     update = await self.queue.get()
                     logger.debug(update)
+                    await self.dispatch(update)
             except asyncio.TimeoutError:
                 continue
 
@@ -108,6 +143,11 @@ if __name__ == '__main__':
     args = parse_args()
     loop = asyncio.get_event_loop()
     bot = Bot(args.token, args.timeout)
+
+    @bot.on('hello')
+    async def hello_handler(update):
+        await bot.reply(update, 'hello')
+
     poller = loop.create_task(bot.start_polling())
     consumer = loop.create_task(bot.consume())
     try:
@@ -120,4 +160,3 @@ if __name__ == '__main__':
         logger.info('Waiting for consumer to complete')
         loop.run_until_complete(consumer)
         loop.close()
-
