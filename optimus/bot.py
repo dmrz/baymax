@@ -12,7 +12,7 @@ from .updates import Updates
 class Bot:
     logger = get_logger(__name__)
 
-    def __init__(self, token, timeout):
+    def __init__(self, token, timeout=30):
         self.token = token
         self.timeout = timeout
         self.updates = Updates(self)
@@ -92,3 +92,21 @@ class Bot:
                 # TODO: Check response status
                 json_response = await resp.json()
                 return json_response
+
+    def run(self):
+        loop = asyncio.get_event_loop()
+
+        poller = loop.create_task(self.start_polling())
+        consumer = loop.create_task(self.consume())
+
+        try:
+            loop.run_forever()
+        # TODO: Handle termination in a more neat way (using signals)
+        except KeyboardInterrupt:
+            self.logger.info('Shutting down...')
+            self.stop_polling()
+            self.logger.info('Waiting for poller to complete')
+            loop.run_until_complete(poller)
+            self.logger.info('Waiting for consumer to complete')
+            loop.run_until_complete(consumer)
+            loop.close()
