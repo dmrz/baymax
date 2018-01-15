@@ -102,7 +102,6 @@ class Bot:
 
             except asyncio.TimeoutError:
                 continue
-        raise StopAsyncIteration
 
     async def get_updates(self, offset):
         self.logger.debug('Getting updates...')
@@ -127,8 +126,8 @@ class Bot:
             self.logger.info('Shutting down...')
             self.stop_polling()
             self.logger.info('Waiting for poller to complete')
-            # loop.run_until_complete(loop.shutdown_asyncgens())
             loop.run_until_complete(poller)
+            loop.run_until_complete(loop.shutdown_asyncgens())
             self.logger.info('Waiting for consumer to complete')
             loop.run_until_complete(consumer)
             loop.close()
