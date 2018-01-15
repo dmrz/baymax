@@ -6,7 +6,6 @@ import aiohttp
 from async_timeout import timeout
 
 from .logger import get_logger
-from .updates import Updates
 
 
 class Bot:
@@ -15,9 +14,9 @@ class Bot:
     def __init__(self, token, timeout=30):
         self.token = token
         self.timeout = timeout
-        self.updates = Updates(self)
         self.queue = asyncio.Queue()
         self.handlers = {}
+        self.update_id = 0
         self._polling = False
 
     @property
@@ -77,14 +76,35 @@ class Bot:
 
     async def start_polling(self):
         self._polling = True
-        async for updates in self.updates:
-            for update in updates:
-                await self.queue.put(update)
+        async for update in self.update_generator():
+            await self.queue.put(update)
 
     def stop_polling(self):
         self._polling = False
 
-    async def getUpdates(self, offset):
+    async def update_generator(self):
+        while True:
+            if not self._polling:
+                break
+
+            try:
+                with timeout(self.timeout):
+                    response = await self.get_updates(self.update_id + 1)
+                    result = response['result']
+
+                    if not result:
+                        continue
+
+                    self.update_id = max(r['update_id'] for r in result)
+
+                    for update in result:
+                        yield update
+
+            except asyncio.TimeoutError:
+                continue
+        raise StopAsyncIteration
+
+    async def get_updates(self, offset):
         self.logger.debug('Getting updates...')
         url = f'{self.base_url}/getUpdates?timeout={self.timeout}&offset={offset}'
         async with aiohttp.ClientSession() as client:
@@ -103,9 +123,11 @@ class Bot:
             loop.run_forever()
         # TODO: Handle termination in a more neat way (using signals)
         except KeyboardInterrupt:
+            # TODO: Simplify shutdown
             self.logger.info('Shutting down...')
             self.stop_polling()
             self.logger.info('Waiting for poller to complete')
+            # loop.run_until_complete(loop.shutdown_asyncgens())
             loop.run_until_complete(poller)
             self.logger.info('Waiting for consumer to complete')
             loop.run_until_complete(consumer)
