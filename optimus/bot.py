@@ -76,16 +76,19 @@ class Bot:
 
     async def start_polling(self):
         self._polling = True
-        async for update in self.update_generator():
-            await self.queue.put(update)
+        try:
+            async for update in self.update_generator():
+                await self.queue.put(update)
+        except Exception:
+            self.logger.exception('Polling cancelled')
 
     def stop_polling(self):
         self._polling = False
 
     async def update_generator(self):
         while True:
-            if not self._polling:
-                break
+            # if not self._polling:
+            #     break
 
             try:
                 with timeout(self.timeout):
@@ -126,8 +129,8 @@ class Bot:
             self.logger.info('Shutting down...')
             self.stop_polling()
             self.logger.info('Waiting for poller to complete')
-            loop.run_until_complete(poller)
             loop.run_until_complete(loop.shutdown_asyncgens())
+            loop.run_until_complete(poller)
             self.logger.info('Waiting for consumer to complete')
             loop.run_until_complete(consumer)
             loop.close()

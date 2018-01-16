@@ -1,3 +1,4 @@
 .ropeproject
 .mypy_cache
+*.sublime-*
 __pycache__
