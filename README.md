@@ -16,3 +16,14 @@ async def start_handler(update):
 
 bot.run()
 ```
+
+
+### Middleware example
+
+```python
+@bot.middleware
+async def message_logging_middleware(update):
+    bot.logger.info('New message received: %s', update['message']['text'])
+```
+
+> NOTE: All middleware functions should be coroutines for now, even if they do not have asynchronous actions.

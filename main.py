@@ -16,4 +16,9 @@ async def start_handler(update):
     await bot.reply(update, 'Welcome!')
 
 
+@bot.middleware
+async def message_logging_middleware(update):
+    bot.logger.info('New message received: %s', update['message']['text'])
+
+
 bot.run()

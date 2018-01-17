@@ -15,6 +15,7 @@ class Bot:
         self.token = token
         self.timeout = timeout
         self.queue = asyncio.Queue()
+        self.middlewares = set()
         self.handlers = {}
         self.update_id = 0
         self._polling = False
@@ -24,12 +25,29 @@ class Bot:
         return f'https://api.telegram.org/bot{self.token}'
 
     async def dispatch(self, update):
+        # TODO: Maybe we need to make it possible to add ordered middlewares
+        # TODO: Do we really need to wait until all the middlewares are done?
+        await asyncio.gather(
+            *[middleware(update) for middleware in self.middlewares])
         handler = self.handlers.get(update['message']['text'])
         if handler is not None:
             self.logger.debug('Dispatching...')
             result = await handler(update)
             return result
         self.logger.error('Handler not found')
+
+    @property
+    def middleware(self):
+        def decorator(middleware):
+            self.middlewares.add(middleware)
+
+            @wraps(middleware)
+            def wrapper(*args, **kwargs):
+                return middleware(*args, **kwargs)
+
+            return wrapper
+
+        return decorator
 
     def on(self, message_text):
         def decorator(handler):
