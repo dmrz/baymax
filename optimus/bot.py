@@ -1,11 +1,13 @@
 import asyncio
 import json
 from functools import wraps
+from typing import Union
 
 import aiohttp
 from async_timeout import timeout
 
 from .logger import get_logger
+from .markups import ReplyMarkup
 
 
 class Bot:
@@ -61,11 +63,18 @@ class Bot:
 
         return decorator
 
-    async def reply(self, update, text):
+    async def reply(self, update, text: str,
+                    reply_markup: Union[ReplyMarkup, None] = None):
         # TODO: Recall why exception (KeyError for instance)
         # is suppressed here and execution just hangs
-        response = await self.make_request(
-            'sendMessage', {'chat_id': update['message']['chat']['id'], 'text': text})
+        # FIXME: Fix a case, when text is dict for instance (method hangs)
+        payload = {
+            'chat_id': update['message']['chat']['id'],
+            'text': text
+        }
+        if isinstance(reply_markup, ReplyMarkup):
+            payload['reply_markup'] = reply_markup.get_serializable()
+        response = await self.make_request('sendMessage', payload)
         self.logger.debug(response)
         return response
 

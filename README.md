@@ -27,3 +27,24 @@ async def message_logging_middleware(update):
 ```
 
 > NOTE: All middleware functions should be coroutines for now, even if they do not have asynchronous actions.
+
+
+### Reply keyboard markup example
+
+
+```python
+from optimus.markups import KeyboardButton, ReplyKeyboardMarkup
+
+@bot.on('/rate')
+async def rate_handler(update):
+    await bot.reply(update, 'Rate me', reply_markup=ReplyKeyboardMarkup(
+        [
+            [
+                KeyboardButton('⭐️'),
+                KeyboardButton('⭐️⭐️'),
+                KeyboardButton('⭐️⭐️⭐️')
+            ]
+        ], resize_keyboard=True, one_time_keyboard=True))
+```
+
+> NOTE: Reply markup API / objects will be changing, they are far from good now.
