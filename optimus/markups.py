@@ -42,3 +42,16 @@ class ReplyKeyboardMarkup(ReplyMarkup):
             'one_time_keyboard': self.one_time_keyboard,
             'selective': self.selective
         }
+
+
+class ReplyKeyboardRemove(ReplyMarkup):
+
+    def __init__(self, selective=False) -> None:
+        self.remove_keyboard = True
+        self.selective = selective
+
+    def get_serializable(self) -> dict:
+        return {
+            'remove_keyboard': self.remove_keyboard,
+            'selective': self.selective
+        }

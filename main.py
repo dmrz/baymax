@@ -1,6 +1,6 @@
 from optimus.args import get_args
 from optimus.bot import Bot
-from optimus.markups import KeyboardButton, ReplyKeyboardMarkup
+from optimus.markups import KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
 
 args = get_args()
 bot = Bot(args.token, args.timeout)
@@ -26,6 +26,33 @@ async def rate_handler(update):
                 KeyboardButton('⭐️⭐️⭐️')
             ]
         ], resize_keyboard=True, one_time_keyboard=True))
+
+
+@bot.on('/open')
+async def open_handler(update):
+    await bot.reply(update, 'Choices', reply_markup=ReplyKeyboardMarkup(
+        [
+            [
+                KeyboardButton('1'),
+                KeyboardButton('2'),
+                KeyboardButton('3')
+            ],
+            [
+                KeyboardButton('4'),
+                KeyboardButton('5'),
+                KeyboardButton('6')
+            ],
+            [
+                KeyboardButton('7'),
+                KeyboardButton('8'),
+                KeyboardButton('9')
+            ],
+        ], resize_keyboard=True))
+
+
+@bot.on('/close')
+async def close_handler(update):
+    await bot.reply(update, 'Closing', reply_markup=ReplyKeyboardRemove())
 
 
 @bot.middleware
