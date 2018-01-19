@@ -1,7 +1,8 @@
 from optimus.args import get_args
 from optimus.bot import Bot
-from optimus.markups import (ForceReply, KeyboardButton, ReplyKeyboardMarkup,
-                             ReplyKeyboardRemove)
+from optimus.markups import (ForceReply, InlineKeyboardButton,
+                             InlineKeyboardMarkup, KeyboardButton,
+                             ReplyKeyboardMarkup, ReplyKeyboardRemove)
 
 args = get_args()
 bot = Bot(args.token, args.timeout)
@@ -27,6 +28,22 @@ async def rate_handler(update):
                 KeyboardButton('⭐️⭐️⭐️')
             ]
         ], resize_keyboard=True, one_time_keyboard=True))
+
+
+@bot.on('/like')
+async def like_handler(update):
+    await bot.reply(update, 'How do you like this message?',
+                    reply_markup=InlineKeyboardMarkup(
+                        [
+                            [
+                                InlineKeyboardButton(
+                                    '⭐️', callback_data='1'),
+                                InlineKeyboardButton(
+                                    '⭐️⭐️', callback_data='2'),
+                                InlineKeyboardButton(
+                                    '⭐️⭐️⭐️', callback_data='3')
+                            ]
+                        ]))
 
 
 @bot.on('/open')
