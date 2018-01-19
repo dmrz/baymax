@@ -55,3 +55,16 @@ class ReplyKeyboardRemove(ReplyMarkup):
             'remove_keyboard': self.remove_keyboard,
             'selective': self.selective
         }
+
+
+class ForceReply(ReplyMarkup):
+
+    def __init__(self, selective=False) -> None:
+        self.force_reply = True
+        self.selective = selective
+
+    def get_serializable(self) -> dict:
+        return {
+            'force_reply': self.force_reply,
+            'selective': self.selective
+        }

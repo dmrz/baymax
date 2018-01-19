@@ -1,6 +1,7 @@
 from optimus.args import get_args
 from optimus.bot import Bot
-from optimus.markups import KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
+from optimus.markups import (ForceReply, KeyboardButton, ReplyKeyboardMarkup,
+                             ReplyKeyboardRemove)
 
 args = get_args()
 bot = Bot(args.token, args.timeout)
@@ -53,6 +54,11 @@ async def open_handler(update):
 @bot.on('/close')
 async def close_handler(update):
     await bot.reply(update, 'Closing', reply_markup=ReplyKeyboardRemove())
+
+
+@bot.on('/force')
+async def force_handler(update):
+    await bot.reply(update, 'Force Reply Test', reply_markup=ForceReply())
 
 
 @bot.middleware
