@@ -1,7 +1,7 @@
 import asyncio
 import json
 from functools import wraps
-from typing import Union
+from typing import Optional
 
 import aiohttp
 from async_timeout import timeout
@@ -64,7 +64,7 @@ class Bot:
         return decorator
 
     async def reply(self, update, text: str,
-                    reply_markup: Union[ReplyMarkup, None] = None):
+                    reply_markup: Optional[ReplyMarkup] = None):
         # TODO: Recall why exception (KeyError for instance)
         # is suppressed here and execution just hangs
         # FIXME: Fix a case, when text is dict for instance (method hangs)
@@ -135,9 +135,13 @@ class Bot:
 
     async def get_updates(self, offset):
         self.logger.debug('Getting updates...')
-        url = f'{self.base_url}/getUpdates?timeout={self.timeout}&offset={offset}'
+        params = {
+            'timeout': self.timeout,
+            'offset': offset
+        }
+        url = f'{self.base_url}/getUpdates'
         async with aiohttp.ClientSession() as client:
-            async with client.get(url) as resp:
+            async with client.get(url, params=params) as resp:
                 # TODO: Check response status
                 json_response = await resp.json()
                 return json_response

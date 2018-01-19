@@ -53,7 +53,7 @@ async def open_handler(update):
             [
                 KeyboardButton('1'),
                 KeyboardButton('2'),
-                KeyboardButton('3')
+                KeyboardButton('3'),
             ],
             [
                 KeyboardButton('4'),
