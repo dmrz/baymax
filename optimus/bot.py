@@ -29,14 +29,26 @@ class Bot:
     async def dispatch(self, update):
         # TODO: Maybe we need to make it possible to add ordered middlewares
         # TODO: Do we really need to wait until all the middlewares are done?
-        await asyncio.gather(
-            *[middleware(update) for middleware in self.middlewares])
-        handler = self.handlers.get(update['message']['text'])
-        if handler is not None:
-            self.logger.debug('Dispatching...')
+        try:
+            await asyncio.gather(
+                *[middleware(update) for middleware in self.middlewares])
+        except Exception:
+            self.logger.exception('Middleware error')
+            return
+
+        text = update['message']['text']
+        handler = self.handlers.get(text)
+        if handler is None:
+            self.logger.error('Handler not found for %s', text)
+            return
+
+        self.logger.debug('Dispatching...')
+        try:
             result = await handler(update)
+        except Exception:
+            self.logger.exception('Handler error')
+        else:
             return result
-        self.logger.error('Handler not found')
 
     @property
     def middleware(self):
