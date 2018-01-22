@@ -77,8 +77,6 @@ class Bot:
 
     async def reply(self, update, text: str,
                     reply_markup: Optional[ReplyMarkup] = None):
-        # TODO: Recall why exception (KeyError for instance)
-        # is suppressed here and execution just hangs
         # FIXME: Fix a case, when text is dict for instance (method hangs)
         payload = {
             'chat_id': update['message']['chat']['id'],
@@ -94,6 +92,7 @@ class Bot:
         url = f'{self.base_url}/{method}'
         headers = {'content-type': 'application/json'}
         data = payload and json.dumps(payload)
+        # FIXME: Sometimes CancelledError is raised on create_connection
         async with aiohttp.ClientSession() as client:
             async with client.post(url, data=data, headers=headers) as resp:
                 self.logger.debug(resp.status)
@@ -102,9 +101,7 @@ class Bot:
                 return json_response
 
     async def consume(self):
-        while True:
-            if not self._polling:
-                break
+        while self._polling:
             try:
                 with timeout(self.timeout / 10):
                     update = await self.queue.get()
@@ -126,9 +123,6 @@ class Bot:
 
     async def update_generator(self):
         while True:
-            # if not self._polling:
-            #     break
-
             try:
                 with timeout(self.timeout):
                     response = await self.get_updates(self.update_id + 1)
