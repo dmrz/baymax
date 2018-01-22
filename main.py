@@ -80,7 +80,7 @@ async def force_handler(update):
 
 @bot.middleware
 async def message_logging_middleware(update):
-    bot.logger.info('New message received: %s', update['message']['text'])
+    bot.logger.info('New message received: %s', update.message.text)
 
 
 bot.run()

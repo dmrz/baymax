@@ -23,7 +23,7 @@ bot.run()
 ```python
 @bot.middleware
 async def message_logging_middleware(update):
-    bot.logger.info('New message received: %s', update['message']['text'])
+    bot.logger.info('New message received: %s', update.message.text)
 ```
 
 > NOTE: All middleware functions should be coroutines for now, even if they do not have asynchronous actions.

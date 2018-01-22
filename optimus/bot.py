@@ -1,5 +1,7 @@
 import asyncio
 import json
+import keyword
+from collections import namedtuple
 from functools import wraps
 from typing import Optional
 
@@ -8,6 +10,17 @@ from async_timeout import timeout
 
 from .logger import get_logger
 from .markups import ReplyMarkup
+
+
+def get_valid_key(key: str):
+    return key if key not in keyword.kwlist else f'{key}_'
+
+
+def get_namedtuple(name: str, **kwargs):
+    return namedtuple(name, [get_valid_key(k) for k in kwargs])(
+        **{get_valid_key(k): (v if not isinstance(v, dict) else get_namedtuple(
+            (get_valid_key(k)).title(), **v))
+           for k, v in kwargs.items()})
 
 
 class Bot:
@@ -36,7 +49,7 @@ class Bot:
             self.logger.exception('Middleware error')
             return
 
-        text = update['message']['text']
+        text = update.message.text
         handler = self.handlers.get(text)
         if handler is None:
             self.logger.error('Handler not found for %s', text)
@@ -79,7 +92,7 @@ class Bot:
                     reply_markup: Optional[ReplyMarkup] = None):
         # FIXME: Fix a case, when text is dict for instance (method hangs)
         payload = {
-            'chat_id': update['message']['chat']['id'],
+            'chat_id': update.message.chat.id,
             'text': text
         }
         if isinstance(reply_markup, ReplyMarkup):
@@ -134,7 +147,7 @@ class Bot:
                     self.update_id = max(r['update_id'] for r in result)
 
                     for update in result:
-                        yield update
+                        yield get_namedtuple('Update', **update)
 
             except asyncio.TimeoutError:
                 continue
