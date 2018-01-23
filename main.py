@@ -9,18 +9,18 @@ bot = Bot(args.token, args.timeout)
 
 
 @bot.on('hello')
-async def hello_handler(update):
-    await bot.reply(update, 'hello')
+async def hello_handler(message):
+    await bot.reply(message, 'hello')
 
 
 @bot.on('/start')
-async def start_handler(update):
-    await bot.reply(update, 'Welcome!')
+async def start_handler(message):
+    await bot.reply(message, 'Welcome!')
 
 
 @bot.on('/rate')
-async def rate_handler(update):
-    await bot.reply(update, 'Rate me', reply_markup=ReplyKeyboardMarkup(
+async def rate_handler(message):
+    await bot.reply(message, 'Rate me', reply_markup=ReplyKeyboardMarkup(
         [
             [
                 KeyboardButton('⭐️'),
@@ -31,8 +31,8 @@ async def rate_handler(update):
 
 
 @bot.on('/like')
-async def like_handler(update):
-    await bot.reply(update, 'How do you like this message?',
+async def like_handler(message):
+    await bot.reply(message, 'How do you like this message?',
                     reply_markup=InlineKeyboardMarkup(
                         [
                             [
@@ -47,8 +47,8 @@ async def like_handler(update):
 
 
 @bot.on('/open')
-async def open_handler(update):
-    await bot.reply(update, 'Choices', reply_markup=ReplyKeyboardMarkup(
+async def open_handler(message):
+    await bot.reply(message, 'Choices', reply_markup=ReplyKeyboardMarkup(
         [
             [
                 KeyboardButton('1'),
@@ -69,18 +69,24 @@ async def open_handler(update):
 
 
 @bot.on('/close')
-async def close_handler(update):
-    await bot.reply(update, 'Closing', reply_markup=ReplyKeyboardRemove())
+async def close_handler(message):
+    await bot.reply(message, 'Closing', reply_markup=ReplyKeyboardRemove())
 
 
 @bot.on('/force')
-async def force_handler(update):
-    await bot.reply(update, 'Force Reply Test', reply_markup=ForceReply())
+async def force_handler(message):
+    await bot.reply(message, 'Force Reply Test', reply_markup=ForceReply())
 
 
 @bot.middleware
 async def message_logging_middleware(update):
-    bot.logger.info('New message received: %s', update.message.text)
+    bot.logger.info('New update received: %s', update.update_id)
+
+
+@bot.callback_query
+async def callback_query_handler(callback_query):
+    bot.logger.info('New callback query received: %s', callback_query)
+    await bot.answer_callback_query(callback_query, 'Thanks!')
 
 
 bot.run()

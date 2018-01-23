@@ -19,7 +19,7 @@ def get_valid_key(key: str):
 def get_namedtuple(name: str, **kwargs):
     return namedtuple(name, [get_valid_key(k) for k in kwargs])(
         **{get_valid_key(k): (v if not isinstance(v, dict) else get_namedtuple(
-            (get_valid_key(k)).title(), **v))
+           k.title().replace('_', ''), **v))
            for k, v in kwargs.items()})
 
 
@@ -32,6 +32,7 @@ class Bot:
         self.queue = asyncio.Queue()
         self.middlewares = set()
         self.handlers = {}
+        self.callback_query_handler = None
         self.update_id = 0
         self._polling = False
 
@@ -49,19 +50,44 @@ class Bot:
             self.logger.exception('Middleware error')
             return
 
-        text = update.message.text
-        handler = self.handlers.get(text)
-        if handler is None:
-            self.logger.error('Handler not found for %s', text)
+        # TODO: Improve dispatching (especially for callback query handler)
+        if 'message' in update._fields:
+            text = update.message.text
+            payload = update.message
+            handler = self.handlers.get(text)
+            if handler is None:
+                self.logger.error('Handler not found for %s', text)
+                return
+        elif 'callback_query' in update._fields:
+            payload = update.callback_query
+            handler = self.callback_query_handler
+            if handler is None:
+                self.logger.error('Callback query handler not set')
+                return
+        else:
+            self.logger.error('Unhandled error')
             return
 
         self.logger.debug('Dispatching...')
         try:
-            result = await handler(update)
+            result = await handler(payload)
         except Exception:
             self.logger.exception('Handler error')
         else:
             return result
+
+    @property
+    def callback_query(self):
+        def decorator(handler):
+            self.callback_query_handler = handler
+
+            @wraps(handler)
+            def wrapper(*args, **kwargs):
+                return handler(*args, **kwargs)
+
+            return wrapper
+
+        return decorator
 
     @property
     def middleware(self):
@@ -88,16 +114,32 @@ class Bot:
 
         return decorator
 
-    async def reply(self, update, text: str,
+    async def reply(self, message, text: str,
                     reply_markup: Optional[ReplyMarkup] = None):
-        # FIXME: Fix a case, when text is dict for instance (method hangs)
         payload = {
-            'chat_id': update.message.chat.id,
+            'chat_id': message.chat.id,
             'text': text
         }
         if isinstance(reply_markup, ReplyMarkup):
             payload['reply_markup'] = reply_markup.get_serializable()
         response = await self.make_request('sendMessage', payload)
+        self.logger.debug(response)
+        return response
+
+    async def answer_callback_query(self, callback_query, text: str,
+                                    show_alert: bool = False,
+                                    url: Optional[str] = None,
+                                    cache_time: Optional[int] = None):
+        payload = {
+            'callback_query_id': callback_query.id,
+            'text': text,
+            'show_alert': show_alert
+        }
+        if url is not None:
+            payload['url'] = url
+        if cache_time is not None:
+            payload['cache_time'] = cache_time
+        response = await self.make_request('answerCallbackQuery', payload)
         self.logger.debug(response)
         return response
 
