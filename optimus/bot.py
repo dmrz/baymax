@@ -51,15 +51,15 @@ class Bot:
             return
 
         # TODO: Improve dispatching (especially for callback query handler)
-        if 'message' in update._fields:
-            text = update.message.text
-            payload = update.message
-            handler = self.handlers.get(text)
+        if 'message' in update:
+            payload = get_namedtuple('Message', **update['message'])
+            handler = self.handlers.get(payload.text)
             if handler is None:
-                self.logger.error('Handler not found for %s', text)
+                self.logger.error('Handler not found for %s', payload.text)
                 return
-        elif 'callback_query' in update._fields:
-            payload = update.callback_query
+        elif 'callback_query' in update:
+            payload = get_namedtuple(
+                'CallbackQuery', **update['callback_query'])
             handler = self.callback_query_handler
             if handler is None:
                 self.logger.error('Callback query handler not set')
@@ -189,7 +189,7 @@ class Bot:
                     self.update_id = max(r['update_id'] for r in result)
 
                     for update in result:
-                        yield get_namedtuple('Update', **update)
+                        yield update
 
             except asyncio.TimeoutError:
                 continue

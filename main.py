@@ -79,8 +79,8 @@ async def force_handler(message):
 
 
 @bot.middleware
-async def message_logging_middleware(update):
-    bot.logger.info('New update received: %s', update.update_id)
+async def message_logging_middleware(raw_update):
+    bot.logger.info('New update received: %s', raw_update['update_id'])
 
 
 @bot.callback_query
