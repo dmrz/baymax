@@ -19,7 +19,7 @@ def get_valid_key(key: str):
 def get_namedtuple(name: str, **kwargs):
     return namedtuple(name, [get_valid_key(k) for k in kwargs])(
         **{get_valid_key(k): (v if not isinstance(v, dict) else get_namedtuple(
-           k.title().replace('_', ''), **v))
+            k.title().replace('_', ''), **v))
            for k, v in kwargs.items()})
 
 
