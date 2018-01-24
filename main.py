@@ -89,4 +89,25 @@ async def callback_query_handler(callback_query):
     await bot.answer_callback_query(callback_query, 'Thanks!')
 
 
+AGE_STATE = 'age_state'
+
+
+@bot.on('/age')
+async def age_handler(message):
+    await bot.set_state(message.from_, AGE_STATE)
+    await bot.reply(message, 'How old are you?')
+
+
+@bot.on_state(AGE_STATE)
+async def age_answer_handler(message):
+    try:
+        age = int(message.text)
+    except ValueError:
+        await bot.reply(message, 'Write a number')
+    else:
+        await bot.delete_state(message.from_)
+        await bot.reply(message, 'Thank you!')
+        bot.logger.info('User %d is %d years old', message.from_.id, age)
+
+
 bot.run()

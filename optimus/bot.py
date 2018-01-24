@@ -1,7 +1,7 @@
 import asyncio
 import json
 import keyword
-from collections import namedtuple
+from collections import namedtuple, UserDict
 from functools import wraps
 from typing import Optional
 
@@ -32,9 +32,11 @@ class Bot:
         self.queue = asyncio.Queue()
         self.middlewares = set()
         self.handlers = {}
+        self.state_handlers = {}
         self.callback_query_handler = None
         self.update_id = 0
         self._polling = False
+        self._storage = Storage()
 
     @property
     def base_url(self):
@@ -53,10 +55,18 @@ class Bot:
         # TODO: Improve dispatching (especially for callback query handler)
         if 'message' in update:
             payload = get_namedtuple('Message', **update['message'])
-            handler = self.handlers.get(payload.text)
-            if handler is None:
-                self.logger.error('Handler not found for %s', payload.text)
-                return
+            # Trying to handle it using state handlers
+            state = await self.get_state(payload.from_)
+            if state is not None:
+                handler = self.state_handlers.get(state)
+                if handler is None:
+                    self.logger.error('State handler %s not found for user %d',
+                                      state, payload.from_.id)
+            else:
+                handler = self.handlers.get(payload.text)
+                if handler is None:
+                    self.logger.error('Handler not found for %s', payload.text)
+                    return
         elif 'callback_query' in update:
             payload = get_namedtuple(
                 'CallbackQuery', **update['callback_query'])
@@ -102,9 +112,21 @@ class Bot:
 
         return decorator
 
-    def on(self, message_text):
+    def on(self, message_text: str):
         def decorator(handler):
             self.handlers[message_text] = handler
+
+            @wraps(handler)
+            def wrapper(*args, **kwargs):
+                return handler(*args, **kwargs)
+
+            return wrapper
+
+        return decorator
+
+    def on_state(self, state: str):
+        def decorator(handler):
+            self.state_handlers[state] = handler
 
             @wraps(handler)
             def wrapper(*args, **kwargs):
@@ -178,6 +200,7 @@ class Bot:
 
     async def update_generator(self):
         while True:
+            self.logger.debug('Current storage state: %s', self._storage.data)
             try:
                 with timeout(self.timeout):
                     response = await self.get_updates(self.update_id + 1)
@@ -226,3 +249,25 @@ class Bot:
             self.logger.info('Waiting for consumer to complete')
             loop.run_until_complete(consumer)
             loop.close()
+
+    async def set_state(self, user, state):
+        await self._storage.set(f'state-{user.id}', state)
+
+    async def get_state(self, user):
+        state = await self._storage.get(f'state-{user.id}')
+        return state
+
+    async def delete_state(self, user):
+        await self._storage.delete(f'state-{user.id}')
+
+
+class Storage(UserDict):
+    async def set(self, key, value):
+        self.data[key] = value
+
+    async def get(self, key):
+        return self.data.get(key)
+
+    async def delete(self, key):
+        if key in self.data:
+            del self.data[key]
