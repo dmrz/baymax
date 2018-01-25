@@ -3,7 +3,7 @@ import json
 import keyword
 from collections import namedtuple, UserDict
 from functools import wraps
-from typing import Optional
+from typing import Callable, Optional
 
 import aiohttp
 from async_timeout import timeout
@@ -33,6 +33,7 @@ class Bot:
         self.middlewares = set()
         self.handlers = {}
         self.state_handlers = {}
+        self.state_predicates = {}
         self.callback_query_handler = None
         self.update_id = 0
         self._polling = False
@@ -58,6 +59,13 @@ class Bot:
             # Trying to handle it using state handlers
             state = await self.get_state(payload.from_)
             if state is not None:
+                predicate = self.state_predicates.get(state)
+                if predicate is not None:
+                    if not predicate(payload.text):
+                        return
+                else:
+                    self.logger.debug('No predicate found for state %s', state)
+
                 handler = self.state_handlers.get(state)
                 if handler is None:
                     self.logger.error('State handler %s not found for user %d',
@@ -124,9 +132,12 @@ class Bot:
 
         return decorator
 
-    def on_state(self, state: str):
+    def on_state(self, state: str,
+                 predicate: Optional[Callable[[str], bool]] = None):
         def decorator(handler):
             self.state_handlers[state] = handler
+            if predicate is not None:
+                self.state_predicates[state] = predicate
 
             @wraps(handler)
             def wrapper(*args, **kwargs):
