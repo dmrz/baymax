@@ -1,15 +1,19 @@
 import asyncio
 import json
 import keyword
-from collections import namedtuple, UserDict
+from collections import UserDict, namedtuple
 from functools import wraps
 from typing import Callable, Optional
 
 import aiohttp
+import uvloop
 from async_timeout import timeout
 
 from .logger import get_logger
 from .markups import ReplyMarkup
+
+
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 
 def get_valid_key(key: str):
@@ -50,6 +54,7 @@ class Bot:
             await asyncio.gather(
                 *[middleware(update) for middleware in self.middlewares])
         except Exception:
+            # FIXME: Find out why it sometimes fails with CancelledError
             self.logger.exception('Middleware error')
             return
 
@@ -176,16 +181,16 @@ class Bot:
         self.logger.debug(response)
         return response
 
-    async def make_request(self, method, payload=None):
+    async def make_request(self, method, payload=None, params=None):
         url = f'{self.base_url}/{method}'
         headers = {'content-type': 'application/json'}
         data = payload and json.dumps(payload)
         # FIXME: Sometimes CancelledError is raised on create_connection
         async with aiohttp.ClientSession() as client:
-            async with client.post(url, data=data, headers=headers) as resp:
-                self.logger.debug(resp.status)
+            async with client.post(
+                    url, data=data, params=params, headers=headers) as resp:
+                # TODO: Check response status
                 json_response = await resp.json()
-                self.logger.debug(json_response)
                 return json_response
 
     async def consume(self):
@@ -193,10 +198,11 @@ class Bot:
             try:
                 with timeout(self.timeout / 10):
                     update = await self.queue.get()
-                    self.logger.debug(update)
-                    await self.dispatch(update)
             except asyncio.TimeoutError:
                 continue
+            else:
+                self.logger.debug('Got update: %s', update)
+                await self.dispatch(update)
 
     async def start_polling(self):
         self._polling = True
@@ -211,35 +217,26 @@ class Bot:
 
     async def update_generator(self):
         while True:
-            self.logger.debug('Current storage state: %s', self._storage.data)
             try:
                 with timeout(self.timeout):
-                    response = await self.get_updates(self.update_id + 1)
-                    result = response['result']
-
-                    if not result:
-                        continue
-
-                    self.update_id = max(r['update_id'] for r in result)
-
-                    for update in result:
-                        yield update
-
+                    updates = await self.get_updates()
             except asyncio.TimeoutError:
                 continue
+            else:
+                for update in updates:
+                    yield update
 
-    async def get_updates(self, offset):
+    async def get_updates(self):
         self.logger.debug('Getting updates...')
         params = {
             'timeout': self.timeout,
-            'offset': offset
+            'offset': self.update_id + 1
         }
-        url = f'{self.base_url}/getUpdates'
-        async with aiohttp.ClientSession() as client:
-            async with client.get(url, params=params) as resp:
-                # TODO: Check response status
-                json_response = await resp.json()
-                return json_response
+        response = await self.make_request('getUpdates', params=params)
+        updates = response['result']
+        if updates:
+            self.update_id = max(r['update_id'] for r in updates)
+        return updates
 
     def run(self):
         loop = asyncio.get_event_loop()

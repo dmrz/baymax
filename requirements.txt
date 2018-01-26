@@ -1,4 +1,5 @@
 aiodns==1.1.1
-aiohttp==2.3.7
+aiohttp==2.3.9
 async-timeout==2.0.0
 colorlog==3.1.0
+uvloop==0.9.1
