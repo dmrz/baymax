@@ -8,7 +8,7 @@ Work in progress
 
 ### Installation
 
-```python
+```bash
 pip install baymax
 ```
 

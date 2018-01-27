@@ -6,15 +6,19 @@ from os import path
 here = path.abspath(path.dirname(__file__))
 
 
+with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
+    long_description = f.read()
+
+
 with open(path.join(here, 'requirements.txt'), encoding='utf-8') as f:
     requirements = f.read().split()
 
 
 setup(
     name='baymax',
-    version='0.0.1',
+    version='0.0.2',
     description='A simple telegram bot framework on top of Python asyncio',
-    long_description='TODO',
+    long_description=long_description,
     url='https://github.com/dmrz/baymax',
     author='Dima Moroz',
     author_email='me@dimamoroz.com',
