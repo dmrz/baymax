@@ -51,4 +51,5 @@ setup(
     #         'sample=sample:main',
     #     ],
     # },
+    python_requires='>=3.6'
 )
