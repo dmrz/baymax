@@ -2,6 +2,16 @@
 
 Work in progress
 
+### Requirements
+
+* Python 3.6 or higher
+
+### Installation
+
+```python
+pip install baymax
+```
+
 
 ### Basic usage example
 
