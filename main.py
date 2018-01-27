@@ -1,6 +1,6 @@
-from optimus.args import get_args
-from optimus.bot import Bot
-from optimus.markups import (ForceReply, InlineKeyboardButton,
+from baymax.args import get_args
+from baymax.bot import Bot
+from baymax.markups import (ForceReply, InlineKeyboardButton,
                              InlineKeyboardMarkup, KeyboardButton,
                              ReplyKeyboardMarkup, ReplyKeyboardRemove)
 

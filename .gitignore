@@ -2,3 +2,4 @@
 .mypy_cache
 *.sublime-*
 __pycache__
+*.egg-info

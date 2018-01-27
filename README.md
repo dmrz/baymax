@@ -1,4 +1,4 @@
-### Optimus, simple telegram bot on top of Python asyncio
+### Baymax, a simple telegram bot framework on top of Python asyncio
 
 Work in progress
 
@@ -6,7 +6,7 @@ Work in progress
 ### Basic usage example
 
 ```python
-from optimus.bot import Bot
+from baymax.bot import Bot
 
 bot = Bot('token')
 
@@ -33,7 +33,7 @@ async def message_logging_middleware(raw_update):
 
 
 ```python
-from optimus.markups import KeyboardButton, ReplyKeyboardMarkup
+from baymax.markups import KeyboardButton, ReplyKeyboardMarkup
 
 @bot.on('/rate')
 async def rate_handler(update):
