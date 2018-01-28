@@ -1,8 +1,19 @@
-from baymax.args import get_args
+import argparse
+
 from baymax.bot import Bot
 from baymax.markups import (ForceReply, InlineKeyboardButton,
-                             InlineKeyboardMarkup, KeyboardButton,
-                             ReplyKeyboardMarkup, ReplyKeyboardRemove)
+                            InlineKeyboardMarkup, KeyboardButton,
+                            ReplyKeyboardMarkup, ReplyKeyboardRemove)
+
+
+def get_args():
+    parser = argparse.ArgumentParser(description='Baymax arguments.')
+    parser.add_argument('-t', '--token', metavar='token', type=str,
+                        help='Telegram bot token', required=True)
+    parser.add_argument('-to', '--timeout', metavar='timeout', type=int,
+                        help='Telegram bot timeout', default=30)
+    return parser.parse_args()
+
 
 args = get_args()
 bot = Bot(args.token, args.timeout)
