@@ -21,8 +21,8 @@ from baymax.bot import Bot
 bot = Bot('token')
 
 @bot.on('/start')
-async def start_handler(update):
-    await bot.reply(update, 'Welcome!')
+async def start_handler(message):
+    await bot.reply(message, 'Welcome!')
 
 bot.run()
 ```
@@ -46,8 +46,8 @@ async def message_logging_middleware(raw_update):
 from baymax.markups import KeyboardButton, ReplyKeyboardMarkup
 
 @bot.on('/rate')
-async def rate_handler(update):
-    await bot.reply(update, 'Rate me', reply_markup=ReplyKeyboardMarkup(
+async def rate_handler(message):
+    await bot.reply(message, 'Rate me', reply_markup=ReplyKeyboardMarkup(
         [
             [
                 KeyboardButton('⭐️'),
