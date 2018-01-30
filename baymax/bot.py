@@ -1,17 +1,15 @@
 import asyncio
-import json
 import keyword
 from collections import UserDict, namedtuple
-from functools import wraps
+from functools import partial, wraps
 from typing import Callable, Optional
 
-import aiohttp
 import uvloop
 from async_timeout import timeout
 
+from . import api
 from .logger import get_logger
 from .markups import ReplyMarkup
-
 
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
@@ -27,11 +25,19 @@ def get_namedtuple(name: str, **kwargs):
            for k, v in kwargs.items()})
 
 
+class TelegramApi:
+    def __init__(self, base_url):
+        self.base_url = base_url
+
+    def __getattr__(self, name):
+        return partial(getattr(api, name), self.base_url)
+
+
 class Bot:
     logger = get_logger(__name__)
 
     def __init__(self, token, timeout=30):
-        self.token = token
+        self.api = TelegramApi(f'https://api.telegram.org/bot{token}')
         self.timeout = timeout
         self.queue = asyncio.Queue()
         self.middlewares = set()
@@ -42,10 +48,6 @@ class Bot:
         self.update_id = 0
         self._polling = False
         self._storage = Storage()
-
-    @property
-    def base_url(self):
-        return f'https://api.telegram.org/bot{self.token}'
 
     async def dispatch(self, update):
         # TODO: Maybe we need to make it possible to add ordered middlewares
@@ -154,13 +156,10 @@ class Bot:
 
     async def reply(self, message, text: str,
                     reply_markup: Optional[ReplyMarkup] = None):
-        payload = {
-            'chat_id': message.chat.id,
-            'text': text
-        }
         if isinstance(reply_markup, ReplyMarkup):
-            payload['reply_markup'] = reply_markup.get_serializable()
-        response = await self.make_request('sendMessage', payload)
+            reply_markup = reply_markup.get_serializable()
+        response = await self.api.send_message(
+            message.chat.id, text, reply_markup)
         self.logger.debug(response)
         return response
 
@@ -168,30 +167,10 @@ class Bot:
                                     show_alert: bool = False,
                                     url: Optional[str] = None,
                                     cache_time: Optional[int] = None):
-        payload = {
-            'callback_query_id': callback_query.id,
-            'text': text,
-            'show_alert': show_alert
-        }
-        if url is not None:
-            payload['url'] = url
-        if cache_time is not None:
-            payload['cache_time'] = cache_time
-        response = await self.make_request('answerCallbackQuery', payload)
+        response = await self.api.answer_callback_query(
+            callback_query.id, text, show_alert, url, cache_time)
         self.logger.debug(response)
         return response
-
-    async def make_request(self, method, payload=None, params=None):
-        url = f'{self.base_url}/{method}'
-        headers = {'content-type': 'application/json'}
-        data = payload and json.dumps(payload)
-        # FIXME: Sometimes CancelledError is raised on create_connection
-        async with aiohttp.ClientSession() as client:
-            async with client.post(
-                    url, data=data, params=params, headers=headers) as resp:
-                # TODO: Check response status
-                json_response = await resp.json()
-                return json_response
 
     async def consume(self):
         while self._polling:
@@ -228,11 +207,7 @@ class Bot:
 
     async def get_updates(self):
         self.logger.debug('Getting updates...')
-        params = {
-            'timeout': self.timeout,
-            'offset': self.update_id + 1
-        }
-        response = await self.make_request('getUpdates', params=params)
+        response = await self.api.get_updates(self.timeout, self.update_id + 1)
         updates = response['result']
         if updates:
             self.update_id = max(r['update_id'] for r in updates)
