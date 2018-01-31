@@ -44,4 +44,4 @@ async def answer_callback_query(
         payload['url'] = url
     if cache_time is not None:
         payload['cache_time'] = cache_time
-    return await request(f'{base_url}/answerCallbackQuery'), payload
+    return await request(f'{base_url}/answerCallbackQuery', payload)
