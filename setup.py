@@ -16,7 +16,7 @@ with open(path.join(here, 'requirements.txt'), encoding='utf-8') as f:
 
 setup(
     name='baymax',
-    version='0.0.3',
+    version='0.0.4',
     description='A simple telegram bot framework on top of Python asyncio',
     long_description=long_description,
     url='https://github.com/dmrz/baymax',
