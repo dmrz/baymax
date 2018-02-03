@@ -123,4 +123,11 @@ async def age_answer_handler(message):
         bot.logger.info('User %d is %d years old', message.from_.id, age)
 
 
+@bot.on('/me')
+async def me_handler(message):
+    me = await bot.api.get_me()
+    first_name = me['result']['first_name']
+    await bot.reply(message, f'I am {first_name}!')
+
+
 bot.run()

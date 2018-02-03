@@ -22,14 +22,44 @@ async def get_updates(base_url, timeout, offset):
     return await request(f'{base_url}/getUpdates', params=params)
 
 
-async def send_message(base_url, chat_id, text, reply_markup=None):
+async def get_me(base_url):
+    return await request(f'{base_url}/getMe')
+
+
+async def send_message(
+        base_url, chat_id, text,
+        parse_mode=None, disable_web_page_preview=None,
+        disable_notification=None, reply_to_message_id=None,
+        reply_markup=None):
     payload = {
         'chat_id': chat_id,
         'text': text
     }
+    if parse_mode is not None:
+        # TODO: Implement setting of a parse mode to payload
+        pass
+    if disable_web_page_preview is not None:
+        payload['disable_web_page_preview'] = disable_web_page_preview
+    if disable_notification is not None:
+        payload['disable_notification'] = disable_notification
+    if reply_to_message_id is not None:
+        payload['reply_to_message_id'] = reply_to_message_id
     if reply_markup is not None:
         payload['reply_markup'] = reply_markup
     return await request(f'{base_url}/sendMessage', payload)
+
+
+async def forward_message(
+        base_url, chat_id, from_chat_id,
+        message_id, disable_notification=None):
+    payload = {
+        'chat_id': chat_id,
+        'from_chat_id': from_chat_id,
+        'message_id': message_id
+    }
+    if disable_notification is not None:
+        payload['disable_notification'] = disable_notification
+    return await request(f'{base_url}/forwardMessage', payload)
 
 
 async def answer_callback_query(
