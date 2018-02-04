@@ -1,5 +1,7 @@
 import argparse
 
+import aiohttp
+
 from baymax.bot import Bot
 from baymax.markups import (ForceReply, InlineKeyboardButton,
                             InlineKeyboardMarkup, KeyboardButton,
@@ -128,6 +130,16 @@ async def me_handler(message):
     me = await bot.api.get_me()
     first_name = me['result']['first_name']
     await bot.reply(message, f'I am {first_name}!')
+
+
+@bot.on('/where')
+async def where_handler(message):
+    async with aiohttp.ClientSession() as client:
+        async with client.get('http://ip-api.com/json') as resp:
+            location_data = await resp.json()
+    await bot.reply(message, 'I am here:')
+    await bot.api.send_location(
+        message.chat.id, location_data['lat'], location_data['lon'])
 
 
 bot.run()

@@ -58,3 +58,19 @@ async def rate_handler(message):
 ```
 
 > NOTE: Reply markup API / objects will be changing, they are far from good now.
+
+
+### Using Telegram bot API methods
+
+Here is an example of using `sendLocation` method:
+
+```python
+@bot.on('/where')
+async def where_handler(message):
+    async with aiohttp.ClientSession() as client:
+        async with client.get('http://ip-api.com/json') as resp:
+            location_data = await resp.json()
+    await bot.reply(message, 'I am here:')
+    await bot.api.send_location(
+        message.chat.id, location_data['lat'], location_data['lon'])
+```
