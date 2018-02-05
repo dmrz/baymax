@@ -1,13 +1,13 @@
 import asyncio
 import keyword
 from collections import UserDict, namedtuple
-from functools import partial, wraps
+from functools import wraps
 from typing import Callable, Optional
 
 import uvloop
 from async_timeout import timeout
 
-from . import api
+from .api import TelegramApi
 from .logger import get_logger
 from .markups import ReplyMarkup
 
@@ -23,14 +23,6 @@ def get_namedtuple(name: str, **kwargs):
         **{get_valid_key(k): (v if not isinstance(v, dict) else get_namedtuple(
             k.title().replace('_', ''), **v))
            for k, v in kwargs.items()})
-
-
-class TelegramApi:
-    def __init__(self, base_url):
-        self.base_url = base_url
-
-    def __getattr__(self, name):
-        return partial(getattr(api, name), self.base_url)
 
 
 class Bot:
