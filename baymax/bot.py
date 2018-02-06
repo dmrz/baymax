@@ -48,7 +48,6 @@ class Bot:
             await asyncio.gather(
                 *[middleware(update) for middleware in self.middlewares])
         except Exception:
-            # FIXME: Find out why it sometimes fails with CancelledError
             self.logger.exception('Middleware error')
             return
 

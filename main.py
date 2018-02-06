@@ -99,7 +99,6 @@ async def message_logging_middleware(raw_update):
 @bot.callback_query
 async def callback_query_handler(callback_query):
     bot.logger.info('New callback query received: %s', callback_query)
-    # FIXME: Does not work for now
     await bot.answer_callback_query(callback_query, 'Thanks!')
 
 
