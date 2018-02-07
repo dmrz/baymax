@@ -81,6 +81,32 @@ class TelegramApi:
             payload['reply_markup'] = reply_markup
         return await self.request(f'{self.base_url}/sendLocation', payload)
 
+    async def leave_chat(self, chat_id):
+        payload = {'chat_id': chat_id}
+        return await self.request(f'{self.base_url}/leaveChat', payload)
+
+    async def get_chat(self, chat_id):
+        payload = {'chat_id': chat_id}
+        return await self.request(f'{self.base_url}/getChat', payload)
+
+    async def get_chat_administrators(self, chat_id):
+        payload = {'chat_id': chat_id}
+        return await self.request(
+            f'{self.base_url}/getChatAdministrators', payload)
+
+    async def get_chat_members_count(self, chat_id):
+        payload = {'chat_id': chat_id}
+        return await self.request(
+            f'{self.base_url}/getChatMembersCount', payload)
+
+    async def get_chat_member(self, chat_id, user_id):
+        payload = {
+            'chat_id': chat_id,
+            'user_id': user_id
+        }
+        return await self.request(
+            f'{self.base_url}/getChatMember', payload)
+
     async def answer_callback_query(
             self, callback_query_id, text, show_alert,
             url=None, cache_time=None):
