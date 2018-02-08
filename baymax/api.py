@@ -81,6 +81,20 @@ class TelegramApi:
             payload['reply_markup'] = reply_markup
         return await self.request(f'{self.base_url}/sendLocation', payload)
 
+    async def set_chat_title(self, chat_id, title):
+        payload = {
+            'chat_id': chat_id,
+            'title': title
+        }
+        return await self.request(f'{self.base_url}/setChatTitle', payload)
+
+    async def set_chat_description(self, chat_id, description):
+        payload = {
+            'chat_id': chat_id,
+            'description': description
+        }
+        return await self.request(f'{self.base_url}/setChatDescription', payload)
+
     async def leave_chat(self, chat_id):
         payload = {'chat_id': chat_id}
         return await self.request(f'{self.base_url}/leaveChat', payload)
