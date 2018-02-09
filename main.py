@@ -141,4 +141,25 @@ async def where_handler(message):
         message.chat.id, location_data['lat'], location_data['lon'])
 
 
+@bot.on('/markdown')
+async def markdown_handler(message):
+    msg = '''
+    *Hello World*
+    ```python
+    def main():
+        print('Hello World')
+    ```
+    '''
+    await bot.reply_markdown(message, msg)
+
+
+@bot.on('/html')
+async def html_handler(message):
+    msg = '''
+    <b>Hello World</b>
+    <a href="http://google.com">Visit Google!</a>
+    '''
+    await bot.reply_html(message, msg)
+
+
 bot.run()

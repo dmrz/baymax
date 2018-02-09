@@ -1,7 +1,8 @@
 import asyncio
 import keyword
 from collections import UserDict, namedtuple
-from functools import wraps
+from enum import Enum
+from functools import partial, wraps
 from typing import Callable, Optional
 
 import uvloop
@@ -23,6 +24,11 @@ def get_namedtuple(name: str, **kwargs):
         **{get_valid_key(k): (v if not isinstance(v, dict) else get_namedtuple(
             k.title().replace('_', ''), **v))
            for k, v in kwargs.items()})
+
+
+class ParseMode(Enum):
+    HTML = 'HTML'
+    MARKDOWN = 'Markdown'
 
 
 class Bot:
@@ -146,13 +152,25 @@ class Bot:
         return decorator
 
     async def reply(self, message, text: str,
+                    parse_mode: Optional[ParseMode] = None,
                     reply_markup: Optional[ReplyMarkup] = None):
+        if isinstance(parse_mode, ParseMode):
+            parse_mode = parse_mode.value
         if isinstance(reply_markup, ReplyMarkup):
             reply_markup = reply_markup.get_serializable()
         response = await self.api.send_message(
-            message.chat.id, text, reply_markup)
+            message.chat.id, text,
+            parse_mode=parse_mode, reply_markup=reply_markup)
         self.logger.debug(response)
         return response
+
+    async def reply_html(self, *args, **kwargs):
+        return await partial(
+            self.reply, parse_mode=ParseMode.HTML)(*args, **kwargs)
+
+    async def reply_markdown(self, *args, **kwargs):
+        return await partial(
+            self.reply, parse_mode=ParseMode.MARKDOWN)(*args, **kwargs)
 
     async def answer_callback_query(self, callback_query, text: str,
                                     show_alert: bool = False,
@@ -172,7 +190,10 @@ class Bot:
                 continue
             else:
                 self.logger.debug('Got update: %s', update)
-                await self.dispatch(update)
+                try:
+                    await self.dispatch(update)
+                except Exception:
+                    self.logger.exception('Dispatch error')
 
     async def start_polling(self):
         self._polling = True
