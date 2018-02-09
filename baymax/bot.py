@@ -186,14 +186,12 @@ class Bot:
             try:
                 with timeout(self.timeout / 10):
                     update = await self.queue.get()
-            except asyncio.TimeoutError:
-                continue
-            else:
-                self.logger.debug('Got update: %s', update)
-                try:
+                    self.logger.debug('Got update: %s', update)
                     await self.dispatch(update)
-                except Exception:
+            except Exception as e:
+                if not isinstance(e, asyncio.TimeoutError):
                     self.logger.exception('Dispatch error')
+                continue
 
     async def start_polling(self):
         self._polling = True
