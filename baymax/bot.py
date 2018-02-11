@@ -42,6 +42,7 @@ class Bot:
         self.handlers = {}
         self.state_handlers = {}
         self.state_predicates = {}
+        self.fsm_handlers = {}
         self.callback_query_handler = None
         self.update_id = 0
         self._polling = False
@@ -142,6 +143,18 @@ class Bot:
             self.state_handlers[state] = handler
             if predicate is not None:
                 self.state_predicates[state] = predicate
+
+            @wraps(handler)
+            def wrapper(*args, **kwargs):
+                return handler(*args, **kwargs)
+
+            return wrapper
+
+        return decorator
+
+    def fsm_handler(self, message_text: str):
+        def decorator(handler):
+            self.fsm_handlers[message_text] = handler
 
             @wraps(handler)
             def wrapper(*args, **kwargs):
