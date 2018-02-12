@@ -39,6 +39,22 @@ async def message_logging_middleware(raw_update):
 > NOTE: All middleware functions should be coroutines for now, even if they do not have asynchronous actions.
 
 
+### FSM example
+
+```python
+@bot.fsm('/age', target='wait_for_age_input')
+async def age_handler(message):
+    await bot.reply(message, 'How old are you?')
+
+
+@bot.fsm_transition(source='wait_for_age_input', conditions=[str.isdigit], terminate=True)
+async def age_input_handler(message):
+    await bot.reply(message, 'Thank you!')
+    age = int(message.text)
+    bot.logger.info('User %d is %d years old', message.from_.id, age)
+```
+
+
 ### Reply keyboard markup example
 
 

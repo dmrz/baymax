@@ -3,7 +3,7 @@ import keyword
 from collections import UserDict, namedtuple
 from enum import Enum
 from functools import partial, wraps
-from typing import Callable, Optional
+from typing import Any, Callable, List, Optional
 
 import uvloop
 from async_timeout import timeout
@@ -40,9 +40,8 @@ class Bot:
         self.queue = asyncio.Queue()
         self.middlewares = set()
         self.handlers = {}
-        self.state_handlers = {}
-        self.state_predicates = {}
         self.fsm_handlers = {}
+        self.fsm_transition_handlers = {}
         self.callback_query_handler = None
         self.update_id = 0
         self._polling = False
@@ -61,25 +60,33 @@ class Bot:
         # TODO: Improve dispatching (especially for callback query handler)
         if 'message' in update:
             payload = get_namedtuple('Message', **update['message'])
-            # Trying to handle it using state handlers
+            # Trying to handle it using transition handlers
             state = await self.get_state(payload.from_)
-            if state is not None:
-                predicate = self.state_predicates.get(state)
-                if predicate is not None:
-                    if not predicate(payload.text):
-                        return
-                else:
-                    self.logger.debug('No predicate found for state %s', state)
-
-                handler = self.state_handlers.get(state)
-                if handler is None:
-                    self.logger.error('State handler %s not found for user %d',
-                                      state, payload.from_.id)
-            else:
-                handler = self.handlers.get(payload.text)
-                if handler is None:
-                    self.logger.error('Handler not found for %s', payload.text)
+            transition_handler = self.fsm_transition_handlers.get(state)
+            if transition_handler is not None:
+                if not all(cond(payload.text) for cond in
+                           transition_handler['conditions'] or []):
+                    self.logger.debug('Did not pass conditions check')
                     return
+                if transition_handler['terminate']:
+                    await self.delete_state(payload.from_)
+                else:
+                    await self.set_state(
+                        payload.from_, transition_handler['target'])
+                handler = transition_handler['handler']
+            else:
+                # Trying to handle using FSM handler
+                fsm_handler = self.fsm_handlers.get(payload.text)
+                if fsm_handler is not None:
+                    await self.set_state(payload.from_, fsm_handler['target'])
+                    handler = fsm_handler['handler']
+                # Trying to handle using main handler
+                else:
+                    handler = self.handlers.get(payload.text)
+                    if handler is None:
+                        self.logger.error(
+                            'Handler not found for %s', payload.text)
+                        return
         elif 'callback_query' in update:
             payload = get_namedtuple(
                 'CallbackQuery', **update['callback_query'])
@@ -95,6 +102,7 @@ class Bot:
         try:
             result = await handler(payload)
         except Exception:
+            # FIXME: Find out why there's CancelledError sometimes here
             self.logger.exception('Handler error')
         else:
             return result
@@ -137,12 +145,14 @@ class Bot:
 
         return decorator
 
-    def on_state(self, state: str,
-                 predicate: Optional[Callable[[str], bool]] = None):
+    def fsm(
+            self, message_text: str,
+            target: str) -> Callable[[Callable[[Any], Any]], Any]:
         def decorator(handler):
-            self.state_handlers[state] = handler
-            if predicate is not None:
-                self.state_predicates[state] = predicate
+            self.fsm_handlers[message_text] = {
+                'handler': handler,
+                'target': target
+            }
 
             @wraps(handler)
             def wrapper(*args, **kwargs):
@@ -152,9 +162,18 @@ class Bot:
 
         return decorator
 
-    def fsm_handler(self, message_text: str):
+    def fsm_transition(
+            self, *, source: str,
+            target: Optional[str] = None,
+            conditions: Optional[List[Callable[[str], bool]]] = None,
+            terminate: bool = False) -> Callable[[Callable[[Any], Any]], Any]:
         def decorator(handler):
-            self.fsm_handlers[message_text] = handler
+            self.fsm_transition_handlers[source] = {
+                'handler': handler,
+                'target': target,
+                'conditions': conditions,
+                'terminate': terminate
+            }
 
             @wraps(handler)
             def wrapper(*args, **kwargs):
