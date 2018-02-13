@@ -62,6 +62,8 @@ class Bot:
             payload = get_namedtuple('Message', **update['message'])
             # Trying to handle it using transition handlers
             state = await self.get_state(payload.from_)
+            # FIXME: Do we need a protection for
+            # transition handler with key None?
             transition_handler = self.fsm_transition_handlers.get(state)
             if transition_handler is not None:
                 if not all(cond(payload.text) for cond in
@@ -100,9 +102,10 @@ class Bot:
 
         self.logger.debug('Dispatching...')
         try:
-            result = await handler(payload)
+            result = await asyncio.shield(handler(payload))
         except Exception:
             # FIXME: Find out why there's CancelledError sometimes here
+            # NOTE: Shield is a temporary workaround for an issue above.
             self.logger.exception('Handler error')
         else:
             return result
