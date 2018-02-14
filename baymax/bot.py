@@ -222,7 +222,7 @@ class Bot:
                 with timeout(self.timeout / 10):
                     update = await self.queue.get()
                     self.logger.debug('Got update: %s', update)
-                    await self.dispatch(update)
+                await self.dispatch(update)
             except Exception as e:
                 if not isinstance(e, asyncio.TimeoutError):
                     self.logger.exception('Dispatch error')
