@@ -1,4 +1,5 @@
 import json
+from typing import Any, Awaitable, Dict, Optional, Union
 
 import aiohttp
 
@@ -80,6 +81,85 @@ class TelegramApi:
         if reply_markup is not None:
             payload['reply_markup'] = reply_markup
         return await self.request(f'{self.base_url}/sendLocation', payload)
+
+    async def send_chat_action(self, chat_id, action: str):
+        # TODO: Implement
+        raise NotImplementedError
+
+    async def kick_chat_member(self, chat_id, user_id: int, until_date=None):
+        payload = {
+            'chat_id': chat_id,
+            'user_id': user_id,
+        }
+        if until_date is not None:
+            payload['until_date'] = until_date
+        return await self.request(f'{self.base_url}/kickChatMember', payload)
+
+    async def unban_chat_member(self, chat_id, user_id: int):
+        payload = {
+            'chat_id': chat_id,
+            'user_id': user_id,
+        }
+        return await self.request(f'{self.base_url}/unbanChatMember', payload)
+
+    async def restrict_chat_member(
+            self, chat_id: Union[int, str], user_id: int,
+            until_date: Optional[int] = None,
+            can_send_messages: Optional[bool] = None,
+            can_send_media_messages: Optional[bool] = None,
+            can_send_other_messages: Optional[bool] = None,
+            can_add_web_page_previews: Optional[bool] = None
+            ) -> Awaitable[Dict[str, Any]]:
+        payload = {
+            'chat_id': chat_id,
+            'user_id': user_id,
+        }
+        if until_date is not None:
+            payload['until_date'] = until_date
+        if can_send_messages is not None:
+            payload['can_send_messages'] = can_send_messages
+        if can_send_media_messages is not None:
+            payload['can_send_media_messages'] = can_send_media_messages
+        if can_send_other_messages is not None:
+            payload['can_send_other_messages'] = can_send_other_messages
+        if can_add_web_page_previews is not None:
+            payload['can_add_web_page_previews'] = can_add_web_page_previews
+        return await self.request(
+            f'{self.base_url}/restrictChatMember', payload)
+
+    async def promote_chat_member(
+            self, chat_id: Union[int, str], user_id: int,
+            can_change_info: Optional[int] = None,
+            can_post_messages: Optional[bool] = None,
+            can_edit_messages: Optional[bool] = None,
+            can_delete_messages: Optional[bool] = None,
+            can_invite_users: Optional[bool] = None,
+            can_restrict_members: Optional[bool] = None,
+            can_pin_messages: Optional[bool] = None,
+            can_promote_members: Optional[bool] = None
+            ) -> Awaitable[Dict[str, Any]]:
+        payload = {
+            'chat_id': chat_id,
+            'user_id': user_id,
+        }
+        if can_change_info is not None:
+            payload['can_change_info'] = can_change_info
+        if can_post_messages is not None:
+            payload['can_post_messages'] = can_post_messages
+        if can_edit_messages is not None:
+            payload['can_edit_messages'] = can_edit_messages
+        if can_delete_messages is not None:
+            payload['can_delete_messages'] = can_delete_messages
+        if can_invite_users is not None:
+            payload['can_invite_users'] = can_invite_users
+        if can_restrict_members is not None:
+            payload['can_restrict_members'] = can_restrict_members
+        if can_pin_messages is not None:
+            payload['can_pin_messages'] = can_pin_messages
+        if can_promote_members is not None:
+            payload['can_promote_members'] = can_promote_members
+        return await self.request(
+            f'{self.base_url}/promoteChatMember', payload)
 
     async def set_chat_title(self, chat_id, title):
         payload = {
