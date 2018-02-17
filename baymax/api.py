@@ -161,6 +161,24 @@ class TelegramApi:
         return await self.request(
             f'{self.base_url}/promoteChatMember', payload)
 
+    async def export_chat_invite_link(
+            self, chat_id: Union[int, str]) -> Awaitable[Dict[str, Any]]:
+        payload = {'chat_id': chat_id}
+        return await self.request(
+            f'{self.base_url}/exportChatInviteLink', payload)
+
+    async def set_chat_photo(
+            self, chat_id: Union[int, str], photo
+            ) -> Awaitable[Dict[str, Any]]:
+        # TODO: Implement
+        raise NotImplementedError
+
+    async def delete_chat_photo(
+            self, chat_id: Union[int, str]) -> Awaitable[Dict[str, Any]]:
+        payload = {'chat_id': chat_id}
+        return await self.request(
+            f'{self.base_url}/deleteChatPhoto', payload)
+
     async def set_chat_title(self, chat_id, title):
         payload = {
             'chat_id': chat_id,
