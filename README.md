@@ -90,3 +90,15 @@ async def where_handler(message):
     await bot.api.send_location(
         message.chat.id, location_data['lat'], location_data['lon'])
 ```
+
+
+### Chat action example
+
+```python
+@bot.on('/long')
+async def long_handler(message):
+    await bot.reply(message, 'I will type something for 5 seconds')
+    await bot.api.send_chat_action(message.chat.id, bot.api.ChatAction.TYPING)
+    await asyncio.sleep(5)
+    await bot.reply(message, 'Here it is...')
+```

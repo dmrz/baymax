@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 
 import aiohttp
 
@@ -151,6 +152,14 @@ async def html_handler(message):
     <a href="http://google.com">Visit Google!</a>
     '''
     await bot.reply_html(message, msg)
+
+
+@bot.on('/long')
+async def long_handler(message):
+    await bot.reply(message, 'I will type something for 5 seconds')
+    await bot.api.send_chat_action(message.chat.id, bot.api.ChatAction.TYPING)
+    await asyncio.sleep(5)
+    await bot.reply(message, 'Here it is...')
 
 
 bot.run()

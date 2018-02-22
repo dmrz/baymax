@@ -27,8 +27,8 @@ def get_namedtuple(name: str, **kwargs):
 
 
 class ParseMode(Enum):
-    HTML = 'HTML'
-    MARKDOWN = 'Markdown'
+    HTML: str = 'HTML'
+    MARKDOWN: str = 'Markdown'
 
 
 class Bot:

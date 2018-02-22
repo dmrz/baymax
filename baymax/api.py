@@ -1,4 +1,5 @@
 import json
+from enum import Enum
 from typing import Any, Awaitable, Dict, Optional, Union
 
 import aiohttp
@@ -6,6 +7,18 @@ import aiohttp
 
 class TelegramApi:
     base_url: str
+
+    class ChatAction(Enum):
+        TYPING: str = 'typing'
+        UPLOAD_PHOTO: str  = 'upload_photo'
+        RECORD_VIDEO: str = 'record_video'
+        UPLOAD_VIDEO: str = 'upload_video'
+        RECORD_AUDIO: str = 'record_audio'
+        UPLOAD_AUDIO: str = 'upload_audio'
+        UPLOAD_DOCUMENT: str = 'upload_document'
+        FIND_LOCATION: str = 'find_location'
+        RECEIVE_VIDEO_NOTE: str = 'record_video_note'
+        UPLOAD_VIDEO_NOTE: str = 'upload_video_note'
 
     def __init__(self, base_url: str) -> None:
         self.base_url = base_url
@@ -82,9 +95,13 @@ class TelegramApi:
             payload['reply_markup'] = reply_markup
         return await self.request(f'{self.base_url}/sendLocation', payload)
 
-    async def send_chat_action(self, chat_id, action: str):
-        # TODO: Implement
-        raise NotImplementedError
+    async def send_chat_action(
+            self, chat_id: Union[int, str], action: ChatAction):
+        payload = {
+            'chat_id': chat_id,
+            'action': action.value
+        }
+        return await self.request(f'{self.base_url}/sendChatAction', payload)
 
     async def kick_chat_member(self, chat_id, user_id: int, until_date=None):
         payload = {
