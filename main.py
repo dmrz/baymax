@@ -162,4 +162,13 @@ async def long_handler(message):
     await bot.reply(message, 'Here it is...')
 
 
+@bot.on('/photo')
+async def photo_handler(message):
+    await bot.reply(message, 'I will send you my photo now')
+    await bot.api.send_chat_action(
+        message.chat.id, bot.api.ChatAction.UPLOAD_PHOTO)
+    with open('me.png', 'rb') as photo:
+        await bot.api.send_photo(message.chat.id, photo)
+
+
 bot.run()

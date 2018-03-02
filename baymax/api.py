@@ -1,6 +1,7 @@
 import json
 from enum import Enum
-from typing import Any, Awaitable, Dict, Optional, Union
+from io import BufferedReader
+from typing import Any, Awaitable, Dict, Optional, Union, BinaryIO
 
 import aiohttp
 
@@ -10,7 +11,7 @@ class TelegramApi:
 
     class ChatAction(Enum):
         TYPING: str = 'typing'
-        UPLOAD_PHOTO: str  = 'upload_photo'
+        UPLOAD_PHOTO: str = 'upload_photo'
         RECORD_VIDEO: str = 'record_video'
         UPLOAD_VIDEO: str = 'upload_video'
         RECORD_AUDIO: str = 'record_audio'
@@ -24,11 +25,12 @@ class TelegramApi:
         self.base_url = base_url
 
     async def request(self, url, payload=None, params=None, headers=None):
-        headers = {'content-type': 'application/json', **(headers or {})}
-        data = payload and json.dumps(payload)
+        if not isinstance(payload, aiohttp.formdata.FormData):
+            headers = {'content-type': 'application/json', **(headers or {})}
+            payload = payload and json.dumps(payload)
         async with aiohttp.ClientSession() as client:
             async with client.post(
-                    url, data=data, params=params, headers=headers) as resp:
+                    url, data=payload, params=params, headers=headers) as resp:
                 # TODO: Check response status
                 json_response = await resp.json()
                 return json_response
@@ -63,6 +65,35 @@ class TelegramApi:
         if reply_markup is not None:
             payload['reply_markup'] = reply_markup
         return await self.request(f'{self.base_url}/sendMessage', payload)
+
+    async def send_photo(
+            self, chat_id, photo: Union[BinaryIO, str], caption=None,
+            parse_mode=None, disable_notification=None,
+            reply_to_message_id=None, reply_markup=None):
+        payload = {
+            'chat_id': chat_id,
+            'photo': photo
+        }
+        if caption is not None:
+            payload['caption'] = caption
+        if parse_mode is not None:
+            payload['parse_mode'] = parse_mode
+        if disable_notification is not None:
+            payload['disable_notification'] = disable_notification
+        if reply_to_message_id is not None:
+            payload['reply_to_message_id'] = reply_to_message_id
+        if reply_markup is not None:
+            payload['reply_markup'] = reply_markup
+
+        if isinstance(photo, BufferedReader):
+            data = aiohttp.formdata.FormData()
+            for k, v in payload.items():
+                if k == 'photo':
+                    data.add_field(k, v, filename=photo.name)
+                else:
+                    data.add_field(k, str(v))
+            payload = data
+        return await self.request(f'{self.base_url}/sendPhoto', payload)
 
     async def forward_message(
             self, chat_id, from_chat_id,
@@ -185,10 +216,21 @@ class TelegramApi:
             f'{self.base_url}/exportChatInviteLink', payload)
 
     async def set_chat_photo(
-            self, chat_id: Union[int, str], photo
+            self, chat_id: Union[int, str], photo: Union[BinaryIO, str]
             ) -> Awaitable[Dict[str, Any]]:
-        # TODO: Implement
-        raise NotImplementedError
+        payload = {
+            'chat_id': chat_id,
+            'photo': photo
+        }
+        if isinstance(photo, BufferedReader):
+            data = aiohttp.formdata.FormData()
+            for k, v in payload.items():
+                if k == 'photo':
+                    data.add_field(k, v, filename=photo.name)
+                else:
+                    data.add_field(k, str(v))
+            payload = data
+        return await self.request(f'{self.base_url}/setChatPhoto', payload)
 
     async def delete_chat_photo(
             self, chat_id: Union[int, str]) -> Awaitable[Dict[str, Any]]:
