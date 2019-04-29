@@ -1,16 +1,19 @@
 import logging
 
+from hypothesis import given, strategies as st
+
 from baymax.logger import get_logger
 
 
-def test_logger(caplog):
-    logger = get_logger("baymax_test")
+@given(logger_name=st.text(), logger_message=st.text())
+def test_logger(caplog, logger_name, logger_message):
+    logger = get_logger(logger_name)
 
-    logger.debug("debug")
-    logger.info("info")
-    logger.warning("warning")
-    logger.error("error")
-    logger.critical("critical")
+    logger.debug(logger_message)
+    logger.info(logger_message)
+    logger.warning(logger_message)
+    logger.error(logger_message)
+    logger.critical(logger_message)
 
     log_dict = {
         level: message
@@ -18,8 +21,11 @@ def test_logger(caplog):
         if name == logger.name
     }
 
-    assert log_dict[logging.DEBUG] == "debug"
-    assert log_dict[logging.INFO] == "info"
-    assert log_dict[logging.WARNING] == "warning"
-    assert log_dict[logging.ERROR] == "error"
-    assert log_dict[logging.CRITICAL] == "critical"
+    for level in [
+        logging.DEBUG,
+        logging.INFO,
+        logging.WARNING,
+        logging.ERROR,
+        logging.CRITICAL,
+    ]:
+        assert log_dict[level] == logger_message

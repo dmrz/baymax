@@ -7,3 +7,7 @@ dist
 build
 .coverage
 htmlcov
+.pytest_cache
+.hypothesis
+pytest-code.ini
+README.rst
