@@ -1,125 +1,77 @@
-import abc
-from typing import List
+from collections import UserDict
+from dataclasses import asdict, dataclass, field
+from json import JSONEncoder
+from typing import Dict, Optional, List
 
 
-class ReplyMarkup(metaclass=abc.ABCMeta):
+class NoneLessDict(UserDict):
+    """
+    Dictionary that cannot have None as a value.
+    """
 
-    @abc.abstractmethod
-    def get_serializable(self) -> dict:
-        raise NotImplementedError
-
-
-class BaseKeyboardButton(metaclass=abc.ABCMeta):
-
-    @abc.abstractmethod
-    def get_serializable(self) -> dict:
-        raise NotImplementedError
+    def __setitem__(self, key, value) -> None:
+        if value is not None:
+            super().__setitem__(key, value)
 
 
-class InlineKeyboardButton(BaseKeyboardButton):
-
-    def __init__(self, text,
-                 url=None, callback_data=None, switch_inline_query=None,
-                 switch_inline_query_current_chat=None, callback_game=None,
-                 pay=None):
-        self.text = text
-        self.url = url
-        self.callback_data = callback_data
-        self.switch_inline_query = switch_inline_query
-        self.switch_inline_query_current_chat =\
-            switch_inline_query_current_chat
-        self.callback_game = callback_game
-        self.pay = pay
-
-    def get_serializable(self) -> dict:
-        data = {
-            'text': self.text
-        }
-        if self.url is not None:
-            data['url'] = self.url
-        if self.callback_data is not None:
-            data['callback_data'] = self.callback_data
-        if self.switch_inline_query is not None:
-            data['switch_inline_query'] = self.switch_inline_query
-        if self.switch_inline_query_current_chat is not None:
-            data['switch_inline_query_current_chat'] =\
-                self.switch_inline_query_current_chat
-        if self.callback_game is not None:
-            data['callback_game'] = self.callback_game.get_serializable()
-        if self.pay is not None:
-            data['pay'] = self.pay
-        return data
+class Markup:
+    """
+    Base class for all the markup entities.
+    """
 
 
-class InlineKeyboardMarkup(ReplyMarkup):
-
-    def __init__(self,
-                 inline_keyboard: List[List[InlineKeyboardButton]]) -> None:
-        self.inline_keyboard = inline_keyboard
-
-    def get_serializable(self) -> dict:
-        return {
-            'inline_keyboard': [[kb.get_serializable() for kb in kbs]
-                                for kbs in self.inline_keyboard]
-        }
+class MarkupJSONEncoder(JSONEncoder):
+    def default(self, o) -> Dict:
+        if isinstance(o, Markup):
+            return asdict(o, dict_factory=NoneLessDict)
+        if isinstance(o, UserDict):
+            return o.data
+        return super().default()
 
 
-class KeyboardButton(BaseKeyboardButton):
-
-    def __init__(self, text, request_contact=False, request_location=False):
-        self.text = text
-        self.request_contact = request_contact
-        self.request_location = request_location
-
-    def get_serializable(self) -> dict:
-        return {
-            'text': self.text,
-            'request_contact': self.request_contact,
-            'request_location': self.request_location
-        }
+@dataclass
+class CallbackGame(Markup):
+    pass
 
 
-class ReplyKeyboardMarkup(ReplyMarkup):
-
-    def __init__(self, keyboard: List[List[KeyboardButton]],
-                 resize_keyboard=False, one_time_keyboard=False,
-                 selective=False) -> None:
-        self.keyboard = keyboard
-        self.resize_keyboard = resize_keyboard
-        self.one_time_keyboard = one_time_keyboard
-        self.selective = selective
-
-    def get_serializable(self) -> dict:
-        return {
-            'keyboard': [[kb.get_serializable() for kb in kbs]
-                         for kbs in self.keyboard],
-            'resize_keyboard': self.resize_keyboard,
-            'one_time_keyboard': self.one_time_keyboard,
-            'selective': self.selective
-        }
+@dataclass
+class InlineKeyboardButton(Markup):
+    text: str
+    url: Optional[str] = None
+    callback_data: Optional[str] = None
+    switch_inline_query: Optional[str] = None
+    switch_inline_query_current_chat: Optional[str] = None
+    callback_game: Optional[CallbackGame] = None
+    pay: Optional[bool] = None
 
 
-class ReplyKeyboardRemove(ReplyMarkup):
-
-    def __init__(self, selective=False) -> None:
-        self.remove_keyboard = True
-        self.selective = selective
-
-    def get_serializable(self) -> dict:
-        return {
-            'remove_keyboard': self.remove_keyboard,
-            'selective': self.selective
-        }
+@dataclass
+class InlineKeyboardMarkup(Markup):
+    inline_keyboard: List[List[InlineKeyboardButton]]
 
 
-class ForceReply(ReplyMarkup):
+@dataclass
+class KeyboardButton(Markup):
+    text: str
+    request_contact: bool = False
+    request_location: bool = False
 
-    def __init__(self, selective=False) -> None:
-        self.force_reply = True
-        self.selective = selective
 
-    def get_serializable(self) -> dict:
-        return {
-            'force_reply': self.force_reply,
-            'selective': self.selective
-        }
+@dataclass
+class ReplyKeyboardMarkup(Markup):
+    keyboard: List[List[KeyboardButton]]
+    resize_keyboard: bool = False
+    one_time_keyboard: bool = False
+    selective: bool = False
+
+
+@dataclass
+class ReplyKeyboardRemove(Markup):
+    selective: bool = False
+    remove_keyboard: bool = field(default=True, init=False)
+
+
+@dataclass
+class ForceReply(Markup):
+    selective: bool = False
+    force_reply: bool = field(default=True, init=False)

@@ -4,14 +4,13 @@ Work in progress
 
 ### Requirements
 
-* Python 3.6 or higher
+- Python 3.7 or higher
 
 ### Installation
 
 ```bash
 pip install baymax
 ```
-
 
 ### Basic usage example
 
@@ -27,7 +26,6 @@ async def start_handler(message):
 bot.run()
 ```
 
-
 ### Middleware example
 
 ```python
@@ -37,7 +35,6 @@ async def message_logging_middleware(raw_update):
 ```
 
 > NOTE: All middleware functions should be coroutines for now, even if they do not have asynchronous actions.
-
 
 ### FSM example
 
@@ -54,9 +51,7 @@ async def age_input_handler(message):
     bot.logger.info('User %d is %d years old', message.from_.id, age)
 ```
 
-
 ### Reply keyboard markup example
-
 
 ```python
 from baymax.markups import KeyboardButton, ReplyKeyboardMarkup
@@ -75,7 +70,6 @@ async def rate_handler(message):
 
 > NOTE: Reply markup API / objects will be changing, they are far from good now.
 
-
 ### Using Telegram bot API methods
 
 Here is an example of using `sendLocation` method:
@@ -91,7 +85,6 @@ async def where_handler(message):
         message.chat.id, location_data['lat'], location_data['lon'])
 ```
 
-
 ### Chat action example
 
 ```python
@@ -103,7 +96,6 @@ async def long_handler(message):
     await bot.reply(message, 'Here it is...')
 ```
 
-
 ### Send photo example
 
 ```python
@@ -114,4 +106,13 @@ async def photo_handler(message):
         message.chat.id, bot.api.ChatAction.UPLOAD_PHOTO)
     with open('me.png', 'rb') as photo:
         await bot.api.send_photo(message.chat.id, photo)
+```
+
+### Running tests
+
+```bash
+git clone git@github.com:dmrz/baymax.git
+pip install -e .
+pip install -r requirements-test.txt
+pytest
 ```
