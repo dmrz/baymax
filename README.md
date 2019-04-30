@@ -1,6 +1,6 @@
 ### Baymax, a simple telegram bot framework on top of Python asyncio
 
-Work in progress
+Work in progress. Currently trying contextvars, so it's very unsafe to use master branch.
 
 ### Requirements
 
@@ -20,8 +20,8 @@ from baymax.bot import Bot
 bot = Bot('token')
 
 @bot.on('/start')
-async def start_handler(message):
-    await bot.reply(message, 'Welcome!')
+async def start_handler(update):
+    await bot.reply('Welcome!')
 
 bot.run()
 ```
@@ -40,15 +40,15 @@ async def message_logging_middleware(raw_update):
 
 ```python
 @bot.fsm('/age', target='wait_for_age_input')
-async def age_handler(message):
-    await bot.reply(message, 'How old are you?')
+async def age_handler(update):
+    await bot.reply('How old are you?')
 
 
 @bot.fsm_transition(source='wait_for_age_input', conditions=[str.isdigit], terminate=True)
-async def age_input_handler(message):
-    await bot.reply(message, 'Thank you!')
-    age = int(message.text)
-    bot.logger.info('User %d is %d years old', message.from_.id, age)
+async def age_input_handler(update):
+    await bot.reply('Thank you!')
+    age = int(update["message"]["text"])
+    bot.logger.info('User %d is %d years old', update["message"]["from"]["id"], age)
 ```
 
 ### Reply keyboard markup example
@@ -57,8 +57,8 @@ async def age_input_handler(message):
 from baymax.markups import KeyboardButton, ReplyKeyboardMarkup
 
 @bot.on('/rate')
-async def rate_handler(message):
-    await bot.reply(message, 'Rate me', reply_markup=ReplyKeyboardMarkup(
+async def rate_handler(update):
+    await bot.reply('Rate me', reply_markup=ReplyKeyboardMarkup(
         [
             [
                 KeyboardButton('⭐️'),
@@ -76,36 +76,36 @@ Here is an example of using `sendLocation` method:
 
 ```python
 @bot.on('/where')
-async def where_handler(message):
+async def where_handler(update):
     async with aiohttp.ClientSession() as client:
         async with client.get('http://ip-api.com/json') as resp:
             location_data = await resp.json()
-    await bot.reply(message, 'I am here:')
+    await bot.reply('I am here:')
     await bot.api.send_location(
-        message.chat.id, location_data['lat'], location_data['lon'])
+        update["message"]["chat"]["id"], location_data['lat'], location_data['lon'])
 ```
 
 ### Chat action example
 
 ```python
 @bot.on('/long')
-async def long_handler(message):
-    await bot.reply(message, 'I will type something for 5 seconds')
-    await bot.api.send_chat_action(message.chat.id, bot.api.ChatAction.TYPING)
+async def long_handler(update):
+    await bot.reply('I will type something for 5 seconds')
+    await bot.api.send_chat_action(update["message"]["chat"]["id"], bot.api.ChatAction.TYPING)
     await asyncio.sleep(5)
-    await bot.reply(message, 'Here it is...')
+    await bot.reply('Here it is...')
 ```
 
 ### Send photo example
 
 ```python
 @bot.on('/photo')
-async def photo_handler(message):
-    await bot.reply(message, 'I will send you my photo now')
+async def photo_handler(update):
+    await bot.reply('I will send you my photo now')
     await bot.api.send_chat_action(
-        message.chat.id, bot.api.ChatAction.UPLOAD_PHOTO)
+        update["message"]["chat"]["id"], bot.api.ChatAction.UPLOAD_PHOTO)
     with open('me.png', 'rb') as photo:
-        await bot.api.send_photo(message.chat.id, photo)
+        await bot.api.send_photo(update["message"]["chat"]["id"], photo)
 ```
 
 ### Running tests
