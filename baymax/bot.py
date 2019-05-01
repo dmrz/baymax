@@ -271,14 +271,19 @@ class Bot:
         try:
             async for update in self.update_generator():
                 await self.queue.put(update)
+        except asyncio.CancelledError:
+            self.logger.info("Polling cancelled")
         except Exception:
-            self.logger.exception("Polling cancelled")
+            self.logger.exception("Polling cancelled unexpectedly")
 
     def stop_polling(self):
         self._polling = False
 
     async def update_generator(self):
-        while True:
+        # while True:
+        while self._polling:
+            # if not self._polling:
+            #     raise StopAsyncIteration("Polling has been explicitly stopped")
             try:
                 # async with timeout(self.timeout, loop=self.loop):
                 async with timeout(self.timeout):
@@ -302,9 +307,6 @@ class Bot:
 
         poller = loop.create_task(self.start_polling())
         consumer = loop.create_task(self.consume())
-
-        if loop.is_running():
-            return
 
         try:
             loop.run_forever()

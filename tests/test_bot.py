@@ -1,25 +1,61 @@
 import asyncio
+from collections import deque
 
 import pytest
+from aiohttp import web
 
-from async_timeout import timeout
+from baymax.trafarets import Chat, Message, Update, User
 
 
 pytestmark = pytest.mark.asyncio
 
 
-# async def test_bot(loop, event_loop, bot):
-#     @bot.on("hello")
-#     async def hello_handler(message):
-#         await bot.reply(message, "hello")
+async def test_bot_hello(
+    loop, bot, telegram_endpoint_handler_registry, tfaker
+):
+    updates = deque()
+    update = tfaker.t_dict(Update)
+    message = tfaker.t_dict(Message)
+    message["text"] = "hello"
+    chat = tfaker.t_dict(Chat)
+    message["chat"] = chat
+    user = tfaker.t_dict(User)
+    message["from"] = user
+    update["message"] = message
+    updates.append(update)
 
-#     await bot.start_polling()
-#     # bot.run()
-#     # task = asyncio.create_task(bot.start_polling())
-#     # await task
+    async def get_updates(request: web.Request) -> web.Response:
+        result = []
+        try:
+            update = updates.pop()
+            result.append(update)
+        except IndexError:
+            await asyncio.sleep(bot.timeout)
 
+        return web.json_response({"result": result})
 
-# async def test_timeout(event_loop, loop):
-#     async with timeout(5, loop=event_loop):
-#         await asyncio.sleep(3, loop=event_loop)
-#         assert 1 == 1
+    send_message_payload_future = asyncio.Future()
+
+    async def send_message(request: web.Request) -> web.Response:
+        payload = await request.json()
+        send_message_payload_future.set_result(payload)
+        return web.json_response({"result": tfaker.t_dict(Message)})
+
+    telegram_endpoint_handler_registry.register("getUpdates", get_updates)
+    telegram_endpoint_handler_registry.register("sendMessage", send_message)
+
+    @bot.on("hello")
+    async def hello_handler(update):
+        await bot.reply("hello")
+
+    poller = asyncio.create_task(bot.start_polling())
+    consumer = asyncio.create_task(bot.consume())
+
+    send_message_payload = await send_message_payload_future
+    assert send_message_payload["chat_id"] == chat["id"]
+    assert send_message_payload["text"] == "hello"
+
+    bot.stop_polling()
+    await loop.shutdown_asyncgens()
+    poller.cancel()
+    await consumer
