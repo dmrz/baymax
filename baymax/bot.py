@@ -121,14 +121,20 @@ class Bot:
 
         self.logger.debug("Dispatching...")
         try:
-            self._update_var.set(update)
-            result = await asyncio.shield(handler(update))
+            # Running update handling in task for contextvars to be happy
+            result = await asyncio.create_task(
+                self._handle_update(handler, update)
+            )
         except Exception:
             # FIXME: Find out why there's CancelledError sometimes here
             # NOTE: Shield is a temporary workaround for an issue above.
             self.logger.exception("Handler error")
         else:
             return result
+
+    async def _handle_update(self, handler, update):
+        self._update_var.set(update)
+        return await asyncio.shield(handler(update))
 
     @property
     def callback_query(self):
