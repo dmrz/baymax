@@ -121,14 +121,20 @@ class Bot:
 
         self.logger.debug("Dispatching...")
         try:
-            self._update_var.set(update)
-            result = await asyncio.shield(handler(update))
+            # Running update handling in task for contextvars to be happy
+            result = await asyncio.create_task(
+                self._handle_update(handler, update)
+            )
         except Exception:
             # FIXME: Find out why there's CancelledError sometimes here
             # NOTE: Shield is a temporary workaround for an issue above.
             self.logger.exception("Handler error")
         else:
             return result
+
+    async def _handle_update(self, handler, update):
+        self._update_var.set(update)
+        return await asyncio.shield(handler(update))
 
     @property
     def callback_query(self):
@@ -271,14 +277,19 @@ class Bot:
         try:
             async for update in self.update_generator():
                 await self.queue.put(update)
+        except asyncio.CancelledError:
+            self.logger.info("Polling cancelled")
         except Exception:
-            self.logger.exception("Polling cancelled")
+            self.logger.exception("Polling cancelled unexpectedly")
 
     def stop_polling(self):
         self._polling = False
 
     async def update_generator(self):
-        while True:
+        # while True:
+        while self._polling:
+            # if not self._polling:
+            #     raise StopAsyncIteration("Polling has been explicitly stopped")
             try:
                 # async with timeout(self.timeout, loop=self.loop):
                 async with timeout(self.timeout):
@@ -302,9 +313,6 @@ class Bot:
 
         poller = loop.create_task(self.start_polling())
         consumer = loop.create_task(self.consume())
-
-        if loop.is_running():
-            return
 
         try:
             loop.run_forever()

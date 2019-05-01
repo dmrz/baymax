@@ -6,7 +6,7 @@ import trafaret as t
 OptKey = partial(t.Key, optional=True)
 
 
-Chat = t.Dict({}).allow_extra("*")
+Chat = t.Dict({t.Key("id"): t.Int}).allow_extra("*")
 MessageEntity = t.Dict({}).allow_extra("*")
 Audio = t.Dict({}).allow_extra("*")
 Document = t.Dict({}).allow_extra("*")
@@ -73,7 +73,9 @@ Message = t.Dict(
         OptKey("edit_date"): t.Int,
         OptKey("media_group_id"): t.String,
         OptKey("author_signature"): t.String,
-        t.Key("text", default=""): t.String(min_length=0, max_length=4096),
+        t.Key("text", default=""): t.String(
+            allow_blank=True, min_length=0, max_length=4096
+        ),
         OptKey("entities"): t.List(MessageEntity),
         OptKey("caption_entities"): t.List(MessageEntity),
         OptKey("audio"): Audio,
