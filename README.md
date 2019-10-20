@@ -1,6 +1,6 @@
 ### Baymax, a simple telegram bot framework on top of Python asyncio
 
-Work in progress. Currently trying contextvars, so it's very unsafe to use master branch.
+Work in progress. Currently trying contextvars, so it's very unsafe to use experimental branch.
 
 ### Requirements
 
