@@ -4,7 +4,7 @@ Work in progress. Currently trying contextvars, so it's very unsafe to use exper
 
 ### Requirements
 
-- Python 3.7 or higher
+- Python 3.8 or higher
 
 ### Installation
 

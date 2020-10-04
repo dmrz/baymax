@@ -42,6 +42,9 @@ class Bot:
     callback_query_handler: Optional[Awaitable] = field(
         default=None, init=False
     )
+    inline_query_handler: Optional[Awaitable] = field(
+        default=None, init=False
+    )
     update_id: int = field(default=0, init=False)
     _polling: bool = field(default=False, init=False)
     _storage: BaseStorage = field(default_factory=StorageInMemory, init=False)
@@ -115,6 +118,11 @@ class Bot:
             if handler is None:
                 self.logger.error("Callback query handler not set")
                 return
+        elif "inline_query" in update:
+            handler = self.inline_query_handler
+            if handler is None:
+                self.logger.error("Inline query handler is not set")
+                return
         else:
             self.logger.error("Unhandled error")
             return
@@ -165,6 +173,22 @@ class Bot:
     def on(self, message_text: str):
         def decorator(handler):
             self.handlers[message_text] = handler
+
+            @wraps(handler)
+            def wrapper(*args, **kwargs):
+                return handler(*args, **kwargs)
+
+            return wrapper
+
+        return decorator
+
+    @property
+    def inline_query(self):
+        """
+        Registers inline query handler.
+        """
+        def decorator(handler):
+            self.inline_query_handler = handler
 
             @wraps(handler)
             def wrapper(*args, **kwargs):
@@ -267,6 +291,8 @@ class Bot:
                     update = await self.queue.get()
                     self.logger.debug("Got update: %s", update)
                 await self.dispatch(update)
+            except asyncio.CancelledError:
+                self.logger.info("Consuming cancelled")
             except Exception as e:
                 if not isinstance(e, asyncio.TimeoutError):
                     self.logger.exception("Dispatch error")
@@ -314,6 +340,7 @@ class Bot:
         poller = loop.create_task(self.start_polling())
         consumer = loop.create_task(self.consume())
 
+        # FIXME: Try to use asyncio.run() instead
         try:
             loop.run_forever()
         # TODO: Handle termination in a more neat way (using signals)
@@ -322,10 +349,15 @@ class Bot:
             self.logger.info("Shutting down...")
             self.stop_polling()
             self.logger.info("Waiting for poller to complete")
-            loop.run_until_complete(loop.shutdown_asyncgens())
+            # Canceling poller task
+            poller.cancel()
             loop.run_until_complete(poller)
             self.logger.info("Waiting for consumer to complete")
+            # Cancelling consumer task
+            consumer.cancel()
             loop.run_until_complete(consumer)
+            # Cancel the rest of async generators
+            loop.run_until_complete(loop.shutdown_asyncgens())
             loop.close()
 
     # FIXME: from.id is not available for messages sent to channels so we need

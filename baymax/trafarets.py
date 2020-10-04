@@ -111,13 +111,65 @@ Message = t.Dict(
 
 MessageForward << Message
 
+
+InputTextMessageContent = t.Dict({
+    t.Key("message_text"): t.String(max_length=4096),
+    OptKey("parse_mode"): t.String,
+    OptKey("disable_web_page_preview"): t.Bool,
+})
+
+
+InputMessageContent = t.Or(InputTextMessageContent)
+
+InlineKeyboardButton = t.Dict({
+    t.Key("text"): t.String,
+    # TODO: Add other optional fields https://core.telegram.org/bots/api#inlinekeyboardbutton
+})
+
+InlineKeyboardMarkup = t.Dict({
+    t.Key("inline_keyboard"): t.List(InlineKeyboardButton)
+})
+
+
 InlineQuery = t.Dict(
     {
         t.Key("id"): t.String,
         t.Key("from"): User,
         OptKey("Location"): Location,
-        t.Key("query"): t.String,
-        t.Key("offset"): t.String,
+        t.Key("query"): t.String(allow_blank=True),
+        t.Key("offset"): t.String(allow_blank=True),
+    }
+)
+
+
+InlineQueryResultArticle = t.Dict({
+    t.Key("type"):	t.String,
+    t.Key("id"):	t.String,
+    t.Key("title"):	t.String,
+    t.Key("input_message_content"):	InputMessageContent,
+    OptKey("reply_markup"):	InlineKeyboardMarkup,
+    OptKey("url"):	t.String,
+    OptKey("hide_url"):	t.Bool,
+    OptKey("description"):	t.String,
+    OptKey("thumb_url"):	t.String,
+    OptKey("thumb_width"):	t.Int,
+    OptKey("thumb_height"):	t.Int,
+})
+
+
+InlineQueryResult = t.Or(InlineQueryResultArticle)
+
+
+AnswerInlineQuery = t.Dict(
+    {
+        t.Key("inline_query_id"): t.String,
+        t.Key("results"): t.List(InlineQueryResult),
+        OptKey("location"): Location,
+        OptKey("cache_time"): t.Int,
+        OptKey("is_personal"): t.Bool,
+        OptKey("next_offset"): t.String,
+        OptKey("switch_pm_text"): t.String,
+        OptKey("switch_pm_parameter"): t.String,
     }
 )
 

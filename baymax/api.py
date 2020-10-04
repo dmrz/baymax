@@ -5,8 +5,11 @@ from io import BufferedReader
 from typing import Any, Awaitable, Dict, Optional, Union, BinaryIO
 
 import aiohttp
+from trafaret import guard
+
 
 from .markups import MarkupJSONEncoder
+from .trafarets import AnswerInlineQuery
 
 
 class TelegramApi:
@@ -140,9 +143,7 @@ class TelegramApi:
             payload["reply_markup"] = reply_markup
         return await self.request(f"{self.base_url}/sendLocation", payload)
 
-    async def send_chat_action(
-        self, chat_id: Union[int, str], action: ChatAction
-    ):
+    async def send_chat_action(self, chat_id: Union[int, str], action: ChatAction):
         payload = {"chat_id": chat_id, "action": action.value}
         return await self.request(f"{self.base_url}/sendChatAction", payload)
 
@@ -177,9 +178,7 @@ class TelegramApi:
             payload["can_send_other_messages"] = can_send_other_messages
         if can_add_web_page_previews is not None:
             payload["can_add_web_page_previews"] = can_add_web_page_previews
-        return await self.request(
-            f"{self.base_url}/restrictChatMember", payload
-        )
+        return await self.request(f"{self.base_url}/restrictChatMember", payload)
 
     async def promote_chat_member(
         self,
@@ -211,17 +210,13 @@ class TelegramApi:
             payload["can_pin_messages"] = can_pin_messages
         if can_promote_members is not None:
             payload["can_promote_members"] = can_promote_members
-        return await self.request(
-            f"{self.base_url}/promoteChatMember", payload
-        )
+        return await self.request(f"{self.base_url}/promoteChatMember", payload)
 
     async def export_chat_invite_link(
         self, chat_id: Union[int, str]
     ) -> Awaitable[Dict[str, Any]]:
         payload = {"chat_id": chat_id}
-        return await self.request(
-            f"{self.base_url}/exportChatInviteLink", payload
-        )
+        return await self.request(f"{self.base_url}/exportChatInviteLink", payload)
 
     async def set_chat_photo(
         self, chat_id: Union[int, str], photo: Union[BinaryIO, str]
@@ -249,9 +244,7 @@ class TelegramApi:
 
     async def set_chat_description(self, chat_id, description):
         payload = {"chat_id": chat_id, "description": description}
-        return await self.request(
-            f"{self.base_url}/setChatDescription", payload
-        )
+        return await self.request(f"{self.base_url}/setChatDescription", payload)
 
     async def leave_chat(self, chat_id):
         payload = {"chat_id": chat_id}
@@ -263,15 +256,11 @@ class TelegramApi:
 
     async def get_chat_administrators(self, chat_id):
         payload = {"chat_id": chat_id}
-        return await self.request(
-            f"{self.base_url}/getChatAdministrators", payload
-        )
+        return await self.request(f"{self.base_url}/getChatAdministrators", payload)
 
     async def get_chat_members_count(self, chat_id):
         payload = {"chat_id": chat_id}
-        return await self.request(
-            f"{self.base_url}/getChatMembersCount", payload
-        )
+        return await self.request(f"{self.base_url}/getChatMembersCount", payload)
 
     async def get_chat_member(self, chat_id, user_id):
         payload = {"chat_id": chat_id, "user_id": user_id}
@@ -289,7 +278,8 @@ class TelegramApi:
             payload["url"] = url
         if cache_time is not None:
             payload["cache_time"] = cache_time
-        return await self.request(
-            f"{self.base_url}/answerCallbackQuery", payload
-        )
+        return await self.request(f"{self.base_url}/answerCallbackQuery", payload)
 
+    @guard(AnswerInlineQuery)
+    async def answer_inline_query(self, **payload):
+        return await self.request(f"{self.base_url}/answerInlineQuery", payload)

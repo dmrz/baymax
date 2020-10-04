@@ -1,5 +1,8 @@
 import argparse
 import asyncio
+import uuid
+from collections import defaultdict
+from typing import Dict, List, Text
 
 import aiohttp
 
@@ -140,9 +143,7 @@ async def message_logging_middleware(raw_update):
 
 @bot.callback_query
 async def callback_query_handler(update):
-    bot.logger.info(
-        "New callback query received: %s", update["callback_query"]
-    )
+    bot.logger.info("New callback query received: %s", update["callback_query"])
     await bot.answer_callback_query("Thanks!")
 
 
@@ -157,9 +158,7 @@ async def age_handler(update):
 async def age_input_handler(update):
     await bot.reply("Thank you!")
     age = int(update["message"]["text"])
-    bot.logger.info(
-        "User %d is %d years old", update["message"]["from"]["id"], age
-    )
+    bot.logger.info("User %d is %d years old", update["message"]["from"]["id"], age)
 
 
 @bot.on("/me")
@@ -221,6 +220,49 @@ async def photo_handler(update):
     )
     with open("me.png", "rb") as photo:
         await bot.api.send_photo(update["message"]["chat"]["id"], photo)
+
+
+QUERY_HISTORY: Dict[int, List[Text]] = defaultdict(list)
+
+
+@bot.inline_query
+async def my_inline_handler(update):
+    """
+    Very low level example of inline handler query
+    """
+    inline_query = update["inline_query"]
+    bot.logger.info("Got inline query request: %s", inline_query)
+    inline_query_id: str = inline_query["id"]
+    query: str = inline_query["query"].strip()
+    if query:
+        user_id = inline_query["from"]["id"]
+        QUERY_HISTORY[user_id].append(query)
+        results = [
+            {
+                "type": "article",
+                "id": str(uuid.uuid4()),
+                "title": f"You queried {q}",
+                "input_message_content": {"message_text": f"You selected: {q}"},
+            }
+            for q in QUERY_HISTORY[user_id]
+        ]
+
+    else:
+        # Default results
+        results = [
+            {
+                "type": "article",
+                "id": str(uuid.uuid4()),
+                "title": "I am all ears",
+                "input_message_content": {"message_text": "Some very interesting text"},
+            }
+        ]
+    await bot.api.answer_inline_query(
+        **{
+            "inline_query_id": inline_query_id,
+            "results": results,
+        }
+    )
 
 
 bot.run()
