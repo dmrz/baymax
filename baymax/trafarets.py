@@ -106,6 +106,7 @@ Message = t.Dict(
         OptKey("successful_payment"): SuccessfulPayment,
         OptKey("connected_website"): t.String,  # TODO: URL or domain?
         OptKey("passport_data"): PassportData,  # TODO: URL or domain?
+        OptKey("via_bot"): User,
     }
 )
 

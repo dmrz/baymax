@@ -30,7 +30,7 @@ class Bot:
     api_url: Optional[str] = None
     loop: Optional[asyncio.AbstractEventLoop] = None
     logger: Logger = field(default=get_logger(__name__), init=False)
-    queue: asyncio.Queue = field(default_factory=asyncio.Queue, init=False)
+    queue: Optional[asyncio.Queue] = field(default=None, init=False)
     middlewares: Set[Awaitable] = field(default_factory=set, init=False)
     handlers: Dict[Text, Awaitable] = field(default_factory=dict, init=False)
     fsm_handlers: Dict[Text, Awaitable] = field(
@@ -58,10 +58,6 @@ class Bot:
         if self.api_url is None:
             self.api_url = f"https://api.telegram.org/bot{self.token}"
         self.api = TelegramApi(self.api_url)
-        # if self.loop is None:
-        #     self.loop = asyncio.get_event_loop()
-        # else:
-        #     self.queue = asyncio.Queue(loop=self.loop)
 
     async def dispatch(self, update):
 
@@ -293,6 +289,7 @@ class Bot:
                 await self.dispatch(update)
             except asyncio.CancelledError:
                 self.logger.info("Consuming cancelled")
+                return
             except Exception as e:
                 if not isinstance(e, asyncio.TimeoutError):
                     self.logger.exception("Dispatch error")
@@ -305,6 +302,7 @@ class Bot:
                 await self.queue.put(update)
         except asyncio.CancelledError:
             self.logger.info("Polling cancelled")
+            return
         except Exception:
             self.logger.exception("Polling cancelled unexpectedly")
 
@@ -334,31 +332,29 @@ class Bot:
             self.update_id = max(r["update_id"] for r in updates)
         return updates
 
+    async def setup(self):
+        # Prepare artifacts
+        self.queue = asyncio.Queue()
+
+    async def main(self):
+        """
+        Main entry point for running all the bot dependent async tasks.
+        """
+
+        await self.setup()
+
+        # Run workers
+        # poller = asyncio.create_task(self.start_polling(), name="baymax_bot_poller")
+        # consumer = asyncio.create_task(self.consume(), name="baymax_bot_consumer")
+        poller = asyncio.create_task(self.start_polling())
+        consumer = asyncio.create_task(self.consume())
+        await asyncio.gather(poller, consumer)
+
     def run(self):
-        loop = asyncio.get_event_loop()
-
-        poller = loop.create_task(self.start_polling())
-        consumer = loop.create_task(self.consume())
-
-        # FIXME: Try to use asyncio.run() instead
         try:
-            loop.run_forever()
-        # TODO: Handle termination in a more neat way (using signals)
+            asyncio.run(self.main())
         except KeyboardInterrupt:
-            # TODO: Simplify shutdown
-            self.logger.info("Shutting down...")
-            self.stop_polling()
-            self.logger.info("Waiting for poller to complete")
-            # Canceling poller task
-            poller.cancel()
-            loop.run_until_complete(poller)
-            self.logger.info("Waiting for consumer to complete")
-            # Cancelling consumer task
-            consumer.cancel()
-            loop.run_until_complete(consumer)
-            # Cancel the rest of async generators
-            loop.run_until_complete(loop.shutdown_asyncgens())
-            loop.close()
+            pass
 
     # FIXME: from.id is not available for messages sent to channels so we need
     # to use some other unique identifier for setting state
