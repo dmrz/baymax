@@ -5,21 +5,22 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Mapping, Optional, Union
 
 
+from .settings import Settings
+
+
 # This module is dedicated for abstractions only
 
 
 @dataclass
-class BaseHttpClient(metaclass=abc.ABCMeta):
+class BaseTelegramApi(metaclass=abc.ABCMeta):
     """
-    Abstract base class for http client that
-    is used for interacting with Telegram API.
+    Abstract telegram api class, also includes HTTP client implementation.
     """
 
-    base_url: str
-    token: str
+    settings: Settings
 
     def get_api_url(self, endpoint: str) -> str:
-        return f"{self.base_url}{self.token}/{endpoint}"
+        return f"{self.settings.base_api_url}{self.settings.token}/{endpoint}"
 
     @abc.abstractproperty
     def form_data_type(self) -> Any:
@@ -47,19 +48,11 @@ class BaseHttpClient(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
 
-@dataclass
-class BaseTelegramApi(metaclass=abc.ABCMeta):
-    """
-    Abstract telegram api.
-    """
-
-    http_client: BaseHttpClient
-
-
 class BaseStorage(metaclass=abc.ABCMeta):
     """
     Abstract class for storage that is primarily used for FSM.
     """
+
     @abc.abstractmethod
     async def set(self, key: str, value: Any) -> None:
         raise NotImplementedError

@@ -41,8 +41,13 @@ def get_env_var_settings_trafaret(fields: Tuple[Field]) -> t.Trafaret:
 
 
 @dataclass
-class BotSettings:
+class Settings:
+    """
+    General settings class.
+    """
+
     token: str
+    base_api_url: str = "https://api.telegram.org/bot"
     timeout: int = 30
 
     # "static" settings
@@ -72,7 +77,7 @@ class BotSettings:
 
     @classmethod
     def get_from_cli(cls) -> Dict[str, Any]:
-        cli_args = BotSettings.get_cli_args_parser().parse_args()
+        cli_args = Settings.get_cli_args_parser().parse_args()
         return {
             field: field_value
             for field in [f.name for f in fields(cls) if f.init]
@@ -85,5 +90,5 @@ class BotSettings:
         return get_env_var_settings_trafaret(fields(cls))(os.environ)
 
     @classmethod
-    def load(cls, **kwargs: Any) -> "BotSettings":
+    def load(cls, **kwargs: Any) -> "Settings":
         return cls(**{**cls.get_from_env(), **cls.get_from_cli(), **kwargs})

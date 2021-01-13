@@ -28,7 +28,7 @@ bot.run()
 
 ### Advanced usage
 
-By default baymax uses aiohttp client for making requests to Telegram API, you can replace it with your own implementation though, check `baymax.default` module to follow `baymax.bot.Bot` dependencies instantiation, you can replace both api component (`baymax.base.BaseTelegramApi`) and http client (`baymax.base.BaseHttpClient`) with your own implementations if your really need. Check `baymax.base` for other components that can be replaced.
+By default baymax uses aiohttp client for making requests to Telegram API, you can replace it with your own implementation though, check `baymax.default` module to follow `baymax.bot.Bot` dependencies instantiation. Check `baymax.base` for other components that can be replaced.
 
 ### Middleware example
 

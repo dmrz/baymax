@@ -3,9 +3,8 @@ import uuid
 from collections import defaultdict
 from typing import Dict, List, Text
 
-import aiohttp
-
 # import uvloop
+import aiohttp
 
 from baymax.default import default_bot_factory
 from baymax.markups import (

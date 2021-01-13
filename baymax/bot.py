@@ -8,7 +8,7 @@ from async_timeout import timeout
 
 from .base import BaseTelegramApi, BaseStorage
 from .markups import Markup, ParseMode
-from .settings import BotSettings
+from .settings import Settings
 from .trafarets import Update
 
 
@@ -16,7 +16,7 @@ from .trafarets import Update
 class Bot:
     api: BaseTelegramApi
     storage: BaseStorage
-    settings: BotSettings
+    settings: Settings
 
     # bot instance settings
     queue: Optional[asyncio.Queue] = field(default=None, init=False)
