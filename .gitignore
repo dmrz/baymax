@@ -11,3 +11,5 @@ htmlcov
 .hypothesis
 pytest-code.ini
 README.rst
+
+.python-version
