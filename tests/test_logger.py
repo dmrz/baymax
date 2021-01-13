@@ -5,27 +5,16 @@ from hypothesis import given, strategies as st
 from baymax.logger import get_logger
 
 
-@given(logger_name=st.text(), logger_message=st.text())
-def test_logger(caplog, logger_name, logger_message):
-    logger = get_logger(logger_name)
+def test_logger(caplog):
+    @given(logger_name=st.text(), logger_message=st.text())
+    def inner(logger_name, logger_message):
 
-    logger.debug(logger_message)
-    logger.info(logger_message)
-    logger.warning(logger_message)
-    logger.error(logger_message)
-    logger.critical(logger_message)
+        logger = get_logger(logger_name)
 
-    log_dict = {
-        level: message
-        for (name, level, message) in caplog.record_tuples
-        if name == logger.name
-    }
+        for level, _ in logging._levelToName.items():
+            with caplog.at_level(level):
+                logger.log(level, logger_message)
+            assert caplog.messages[0] == logger_message
+        caplog.clear()
 
-    for level in [
-        logging.DEBUG,
-        logging.INFO,
-        logging.WARNING,
-        logging.ERROR,
-        logging.CRITICAL,
-    ]:
-        assert log_dict[level] == logger_message
+    inner()

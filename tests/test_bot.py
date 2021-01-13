@@ -30,7 +30,7 @@ async def test_bot_hello(
             update = updates.pop()
             result.append(update)
         except IndexError:
-            await asyncio.sleep(bot.timeout)
+            pass
 
         return web.json_response({"result": result})
 
@@ -48,14 +48,14 @@ async def test_bot_hello(
     async def hello_handler(update):
         await bot.reply("hello")
 
-    poller = asyncio.create_task(bot.start_polling())
-    consumer = asyncio.create_task(bot.consume())
+    bot_task = asyncio.create_task(bot.main())
 
     send_message_payload = await send_message_payload_future
     assert send_message_payload["chat_id"] == chat["id"]
     assert send_message_payload["text"] == "hello"
 
-    bot.stop_polling()
+    print('cancelling bot task')
+    bot_task.cancel()
+    print('unwrapping')
     await loop.shutdown_asyncgens()
-    poller.cancel()
-    await consumer
+    # await bot_task

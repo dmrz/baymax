@@ -1,6 +1,6 @@
 import pytest
 
-from baymax.bot import StorageInMemory
+from baymax.default.storage import StorageInMemory
 
 
 pytestmark = pytest.mark.asyncio

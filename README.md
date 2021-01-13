@@ -4,7 +4,7 @@ Work in progress. Currently trying contextvars, so it's very unsafe to use exper
 
 ### Requirements
 
-- Python 3.8 or higher
+- Python 3.9 or higher (might work on 3.8 though, but recent changes tested on 3.9)
 
 ### Installation
 
@@ -15,9 +15,9 @@ pip install baymax
 ### Basic usage example
 
 ```python
-from baymax.bot import Bot
+from baymax.default import default_bot_factory
 
-bot = Bot('token')
+bot = default_bot_factory(token='mytoken')
 
 @bot.on('/start')
 async def start_handler(update):
@@ -26,12 +26,16 @@ async def start_handler(update):
 bot.run()
 ```
 
+### Advanced usage
+
+By default baymax uses aiohttp client for making requests to Telegram API, you can replace it with your own implementation though, check `baymax.default` module to follow `baymax.bot.Bot` dependencies instantiation. Check `baymax.base` for other components that can be replaced.
+
 ### Middleware example
 
 ```python
 @bot.middleware
 async def message_logging_middleware(raw_update):
-    bot.logger.info('New update received: %s', raw_update['update_id'])
+    bot.settings.logger.info('New update received: %s', raw_update['update_id'])
 ```
 
 > NOTE: All middleware functions should be coroutines for now, even if they do not have asynchronous actions.
@@ -48,13 +52,13 @@ async def age_handler(update):
 async def age_input_handler(update):
     await bot.reply('Thank you!')
     age = int(update["message"]["text"])
-    bot.logger.info('User %d is %d years old', update["message"]["from"]["id"], age)
+    bot.settings.logger.info('User %d is %d years old', update["message"]["from"]["id"], age)
 ```
 
 ### Reply keyboard markup example
 
 ```python
-from baymax.markups import KeyboardButton, ReplyKeyboardMarkup
+from baymax.typedefs.markups import KeyboardButton, ReplyKeyboardMarkup
 
 @bot.on('/rate')
 async def rate_handler(update):

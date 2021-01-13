@@ -1,32 +1,11 @@
-from collections import UserDict
-from dataclasses import asdict, dataclass, field
-from json import JSONEncoder
-from typing import Dict, Optional, List
-
-
-class NoneLessDict(UserDict):
-    """
-    Dictionary that cannot have None as a value.
-    """
-
-    def __setitem__(self, key, value) -> None:
-        if value is not None:
-            super().__setitem__(key, value)
+from dataclasses import dataclass, field
+from typing import Optional, List
 
 
 class Markup:
     """
     Base class for all the markup entities.
     """
-
-
-class MarkupJSONEncoder(JSONEncoder):
-    def default(self, o) -> Dict:
-        if isinstance(o, Markup):
-            return asdict(o, dict_factory=NoneLessDict)
-        if isinstance(o, UserDict):
-            return o.data
-        return super().default()
 
 
 @dataclass

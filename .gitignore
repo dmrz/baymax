@@ -3,6 +3,7 @@
 *.sublime-*
 __pycache__
 *.egg-info
+.DS_Store
 dist
 build
 .coverage
@@ -11,3 +12,7 @@ htmlcov
 .hypothesis
 pytest-code.ini
 README.rst
+
+.python-version
+.vscode
+.env

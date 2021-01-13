@@ -1,13 +1,13 @@
-import argparse
 import asyncio
 import uuid
 from collections import defaultdict
 from typing import Dict, List, Text
 
+# import uvloop
 import aiohttp
 
-from baymax.bot import Bot
-from baymax.markups import (
+from baymax.default import default_bot_factory
+from baymax.typedefs.markups import (
     ForceReply,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -16,30 +16,10 @@ from baymax.markups import (
     ReplyKeyboardRemove,
 )
 
-
-def get_args():
-    parser = argparse.ArgumentParser(description="Baymax arguments.")
-    parser.add_argument(
-        "-t",
-        "--token",
-        metavar="token",
-        type=str,
-        help="Telegram bot token",
-        required=True,
-    )
-    parser.add_argument(
-        "-to",
-        "--timeout",
-        metavar="timeout",
-        type=int,
-        help="Telegram bot timeout",
-        default=30,
-    )
-    return parser.parse_args()
+# asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 
-args = get_args()
-bot = Bot(args.token, args.timeout)
+bot = default_bot_factory()
 
 
 @bot.on("hello")
@@ -138,12 +118,14 @@ async def force_handler(update):
 
 @bot.middleware
 async def message_logging_middleware(raw_update):
-    bot.logger.info("New update received: %s", raw_update["update_id"])
+    bot.settings.logger.info("New update received: %s", raw_update["update_id"])
 
 
 @bot.callback_query
 async def callback_query_handler(update):
-    bot.logger.info("New callback query received: %s", update["callback_query"])
+    bot.settings.logger.info(
+        "New callback query received: %s", update["callback_query"]
+    )
     await bot.answer_callback_query("Thanks!")
 
 
@@ -158,7 +140,9 @@ async def age_handler(update):
 async def age_input_handler(update):
     await bot.reply("Thank you!")
     age = int(update["message"]["text"])
-    bot.logger.info("User %d is %d years old", update["message"]["from"]["id"], age)
+    bot.settings.logger.info(
+        "User %d is %d years old", update["message"]["from"]["id"], age
+    )
 
 
 @bot.on("/me")
@@ -231,7 +215,7 @@ async def my_inline_handler(update):
     Very low level example of inline handler query
     """
     inline_query = update["inline_query"]
-    bot.logger.info("Got inline query request: %s", inline_query)
+    bot.settings.logger.info("Got inline query request: %s", inline_query)
     inline_query_id: str = inline_query["id"]
     query: str = inline_query["query"].strip()
     if query:

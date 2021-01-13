@@ -17,7 +17,7 @@ with copen(path.join(here, "requirements.txt"), encoding="utf-8") as f:
 
 setup(
     name="baymax",
-    version="0.0.5",
+    version="1.0.0a0",
     description="A simple telegram bot framework on top of Python asyncio",
     long_description=long_description,
     url="https://github.com/dmrz/baymax",
@@ -29,11 +29,11 @@ setup(
         "Intended Audience :: Developers",
         "Topic :: Software Development :: Libraries :: Application Frameworks",
         "License :: OSI Approved :: MIT License",
-        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.9",
     ],
     keywords="telegram bot asyncio",
     packages=find_packages(exclude=["docs", "tests"]),
     install_requires=requirements,
-    python_requires=">=3.7",
+    python_requires=">=3.9",
     package_data={"baymax": ["LICENSE"]},
 )
