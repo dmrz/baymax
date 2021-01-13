@@ -58,7 +58,7 @@ async def age_input_handler(update):
 ### Reply keyboard markup example
 
 ```python
-from baymax.markups import KeyboardButton, ReplyKeyboardMarkup
+from baymax.typedefs.markups import KeyboardButton, ReplyKeyboardMarkup
 
 @bot.on('/rate')
 async def rate_handler(update):

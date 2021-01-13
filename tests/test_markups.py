@@ -3,7 +3,7 @@ from dataclasses import asdict
 
 import pytest
 
-from baymax.markups import (
+from baymax.typedefs.markups import (
     CallbackGame,
     InlineKeyboardButton,
     InlineKeyboardMarkup,

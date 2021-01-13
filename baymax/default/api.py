@@ -1,15 +1,18 @@
+from collections import UserDict
+from dataclasses import asdict
 from enum import Enum
 from functools import partial
 from io import BufferedReader
-from json import dumps as json_dumps
+from json import dumps as json_dumps, JSONEncoder
 from typing import Any, Awaitable, Dict, List, Mapping, Optional, Union, BinaryIO
 
 import aiohttp
 from trafaret import guard
 
 from ..base import BaseTelegramApi
-from ..markups import MarkupJSONEncoder
 from ..trafarets import AnswerInlineQuery
+from ..typedefs.common import ParseMode
+from ..typedefs.markups import Markup
 
 
 class TelegramApi(BaseTelegramApi):
@@ -66,7 +69,7 @@ class TelegramApi(BaseTelegramApi):
         self,
         chat_id,
         text,
-        parse_mode=None,
+        parse_mode: Optional[ParseMode] = None,
         disable_web_page_preview=None,
         disable_notification=None,
         reply_to_message_id=None,
@@ -295,3 +298,22 @@ class TelegramApi(BaseTelegramApi):
     @guard(AnswerInlineQuery)
     async def answer_inline_query(self, **payload):
         return await self.request("answerInlineQuery", json=payload)
+
+
+class NoneLessDict(UserDict):
+    """
+    Dictionary that cannot have None as a value.
+    """
+
+    def __setitem__(self, key, value) -> None:
+        if value is not None:
+            super().__setitem__(key, value)
+
+
+class MarkupJSONEncoder(JSONEncoder):
+    def default(self, o) -> Dict:
+        if isinstance(o, Markup):
+            return asdict(o, dict_factory=NoneLessDict)
+        if isinstance(o, UserDict):
+            return o.data
+        return super().default(o)

@@ -7,9 +7,10 @@ from typing import Any, Callable, Dict, List, Optional, Awaitable, Set, Text
 from async_timeout import timeout
 
 from .base import BaseTelegramApi, BaseStorage
-from .markups import Markup, ParseMode
 from .settings import Settings
 from .trafarets import Update
+from .typedefs.common import ParseMode
+from .typedefs.markups import Markup
 
 
 @dataclass

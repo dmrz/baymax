@@ -7,7 +7,7 @@ from typing import Dict, List, Text
 import aiohttp
 
 from baymax.default import default_bot_factory
-from baymax.markups import (
+from baymax.typedefs.markups import (
     ForceReply,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
