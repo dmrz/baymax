@@ -9,7 +9,8 @@ from aiohttp import web
 from hypothesis import settings
 
 from baymax.bot import Bot
-from baymax.faker_provider import Provider
+
+from .trafaret_faker_provider import Provider
 
 pytest_plugins = ["aiohttp.pytest_plugin", "pytester"]
 
@@ -63,9 +64,7 @@ async def telegram_endpoint_dispatcher_factory(telegram_endpoint_handler_registr
 
 
 @pytest.fixture
-async def bot(
-    event_loop, aiohttp_server, telegram_endpoint_dispatcher_factory
-):
+async def bot(event_loop, aiohttp_server, telegram_endpoint_dispatcher_factory):
 
     # Create server
     app = web.Application()

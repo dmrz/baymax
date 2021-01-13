@@ -1,5 +1,6 @@
 from collections import UserDict
 from dataclasses import asdict, dataclass, field
+from enum import Enum
 from json import JSONEncoder
 from typing import Dict, Optional, List
 
@@ -26,7 +27,7 @@ class MarkupJSONEncoder(JSONEncoder):
             return asdict(o, dict_factory=NoneLessDict)
         if isinstance(o, UserDict):
             return o.data
-        return super().default()
+        return super().default(o)
 
 
 @dataclass
@@ -75,3 +76,8 @@ class ReplyKeyboardRemove(Markup):
 class ForceReply(Markup):
     selective: bool = False
     force_reply: bool = field(default=True, init=False)
+
+
+class ParseMode(Enum):
+    HTML: str = "HTML"
+    MARKDOWN: str = "Markdown"

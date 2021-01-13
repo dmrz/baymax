@@ -57,6 +57,7 @@ Poll = t.Dict(
 )
 
 MessageForward = t.Forward()
+ReplyMarkupForward = t.Forward()
 
 Message = t.Dict(
     {
@@ -107,6 +108,7 @@ Message = t.Dict(
         OptKey("connected_website"): t.String,  # TODO: URL or domain?
         OptKey("passport_data"): PassportData,  # TODO: URL or domain?
         OptKey("via_bot"): User,
+        OptKey("reply_markup"):	ReplyMarkupForward,
     }
 )
 
@@ -122,15 +124,26 @@ InputTextMessageContent = t.Dict({
 
 InputMessageContent = t.Or(InputTextMessageContent)
 
+LoginUrl = t.URL
+CallbackGame = t.String
+
 InlineKeyboardButton = t.Dict({
     t.Key("text"): t.String,
-    # TODO: Add other optional fields https://core.telegram.org/bots/api#inlinekeyboardbutton
+    OptKey("url"): LoginUrl,
+    OptKey("callback_data"): t.String,
+    OptKey("switch_inline_query"): t.String,
+    OptKey("switch_inline_query_current_chat"): t.String,
+    OptKey("callback_game"): CallbackGame,
+    OptKey("pay"): t.Bool,
 })
 
 InlineKeyboardMarkup = t.Dict({
-    t.Key("inline_keyboard"): t.List(InlineKeyboardButton)
+    t.Key("inline_keyboard"): t.List(t.List(InlineKeyboardButton))
 })
 
+
+# ReplyMarkup = t.Enum(InlineKeyboardMarkup)
+ReplyMarkupForward << InlineKeyboardMarkup
 
 InlineQuery = t.Dict(
     {

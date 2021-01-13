@@ -1,63 +1,38 @@
 import asyncio
 from contextvars import ContextVar
 from dataclasses import dataclass, field
-from enum import Enum
 from functools import partial, wraps
-from logging import Logger
 from typing import Any, Callable, Dict, List, Optional, Awaitable, Set, Text
 
-# import uvloop
 from async_timeout import timeout
 
-from .api import TelegramApi
-from .logger import get_logger
-from .markups import Markup
+from .base import BaseTelegramApi, BaseStorage
+from .markups import Markup, ParseMode
+from .settings import BotSettings
 from .trafarets import Update
-from .storage import BaseStorage, StorageInMemory
-
-# asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-
-
-class ParseMode(Enum):
-    HTML: str = "HTML"
-    MARKDOWN: str = "Markdown"
 
 
 @dataclass
 class Bot:
-    token: str
-    timeout: int = 30
-    api_url: Optional[str] = None
-    loop: Optional[asyncio.AbstractEventLoop] = None
-    logger: Logger = field(default=get_logger(__name__), init=False)
+    api: BaseTelegramApi
+    storage: BaseStorage
+    settings: BotSettings
+
+    # bot instance settings
     queue: Optional[asyncio.Queue] = field(default=None, init=False)
     middlewares: Set[Awaitable] = field(default_factory=set, init=False)
     handlers: Dict[Text, Awaitable] = field(default_factory=dict, init=False)
-    fsm_handlers: Dict[Text, Awaitable] = field(
-        default_factory=dict, init=False
-    )
+    fsm_handlers: Dict[Text, Awaitable] = field(default_factory=dict, init=False)
     fsm_transition_handlers: Dict[Text, Awaitable] = field(
         default_factory=dict, init=False
     )
-    callback_query_handler: Optional[Awaitable] = field(
-        default=None, init=False
-    )
-    inline_query_handler: Optional[Awaitable] = field(
-        default=None, init=False
-    )
+    callback_query_handler: Optional[Awaitable] = field(default=None, init=False)
+    inline_query_handler: Optional[Awaitable] = field(default=None, init=False)
     update_id: int = field(default=0, init=False)
     _polling: bool = field(default=False, init=False)
-    _storage: BaseStorage = field(default_factory=StorageInMemory, init=False)
 
     # contextvars
-    _update_var: Dict[Text, Any] = field(
-        default=ContextVar("update"), init=False
-    )
-
-    def __post_init__(self):
-        if self.api_url is None:
-            self.api_url = f"https://api.telegram.org/bot{self.token}"
-        self.api = TelegramApi(self.api_url)
+    _update_var: Dict[Text, Any] = field(default=ContextVar("update"), init=False)
 
     async def dispatch(self, update):
 
@@ -70,7 +45,7 @@ class Bot:
                 *[middleware(update) for middleware in self.middlewares]
             )
         except Exception:
-            self.logger.exception("Middleware error")
+            self.settings.logger.exception("Middleware error")
             return
 
         update = Update(update)
@@ -87,7 +62,7 @@ class Bot:
                     cond(update["message"]["text"])
                     for cond in transition_handler["conditions"] or []
                 ):
-                    self.logger.debug("Did not pass conditions check")
+                    self.settings.logger.debug("Did not pass conditions check")
                     return
                 if transition_handler["terminate"]:
                     await self.delete_state(update)
@@ -104,7 +79,7 @@ class Bot:
                 else:
                     handler = self.handlers.get(update["message"]["text"])
                     if handler is None:
-                        self.logger.error(
+                        self.settings.logger.error(
                             "Handler not found for %s",
                             update["message"]["text"],
                         )
@@ -112,27 +87,25 @@ class Bot:
         elif "callback_query" in update:
             handler = self.callback_query_handler
             if handler is None:
-                self.logger.error("Callback query handler not set")
+                self.settings.logger.error("Callback query handler not set")
                 return
         elif "inline_query" in update:
             handler = self.inline_query_handler
             if handler is None:
-                self.logger.error("Inline query handler is not set")
+                self.settings.logger.error("Inline query handler is not set")
                 return
         else:
-            self.logger.error("Unhandled error")
+            self.settings.logger.error("Unhandled error")
             return
 
-        self.logger.debug("Dispatching...")
+        self.settings.logger.debug("Dispatching...")
         try:
             # Running update handling in task for contextvars to be happy
-            result = await asyncio.create_task(
-                self._handle_update(handler, update)
-            )
+            result = await asyncio.create_task(self._handle_update(handler, update))
         except Exception:
             # FIXME: Find out why there's CancelledError sometimes here
             # NOTE: Shield is a temporary workaround for an issue above.
-            self.logger.exception("Handler error")
+            self.settings.logger.exception("Handler error")
         else:
             return result
 
@@ -183,6 +156,7 @@ class Bot:
         """
         Registers inline query handler.
         """
+
         def decorator(handler):
             self.inline_query_handler = handler
 
@@ -244,7 +218,7 @@ class Bot:
         if isinstance(parse_mode, ParseMode):
             parse_mode = parse_mode.value
         update = self._update_var.get()
-        self.logger.info("Current update context var, %s", update)
+        self.settings.logger.info("Current update context var, %s", update)
         response = await self.api.send_message(
             # FIXME: Message can be empty
             update["message"]["chat"]["id"],
@@ -252,18 +226,14 @@ class Bot:
             parse_mode=parse_mode,
             reply_markup=reply_markup,
         )
-        self.logger.debug(response)
+        self.settings.logger.debug(response)
         return response
 
     async def reply_html(self, *args, **kwargs):
-        return await partial(self.reply, parse_mode=ParseMode.HTML)(
-            *args, **kwargs
-        )
+        return await partial(self.reply, parse_mode=ParseMode.HTML)(*args, **kwargs)
 
     async def reply_markdown(self, *args, **kwargs):
-        return await partial(self.reply, parse_mode=ParseMode.MARKDOWN)(
-            *args, **kwargs
-        )
+        return await partial(self.reply, parse_mode=ParseMode.MARKDOWN)(*args, **kwargs)
 
     async def answer_callback_query(
         self,
@@ -276,23 +246,22 @@ class Bot:
         response = await self.api.answer_callback_query(
             update["callback_query"]["id"], text, show_alert, url, cache_time
         )
-        self.logger.debug(response)
+        self.settings.logger.debug(response)
         return response
 
     async def consume(self):
         while self._polling:
             try:
-                # async with timeout(self.timeout / 10, loop=self.loop):
-                async with timeout(self.timeout / 10):
+                async with timeout(self.settings.timeout / 10):
                     update = await self.queue.get()
-                    self.logger.debug("Got update: %s", update)
+                    self.settings.logger.debug("Got update: %s", update)
                 await self.dispatch(update)
             except asyncio.CancelledError:
-                self.logger.info("Consuming cancelled")
+                self.settings.logger.info("Consuming cancelled")
                 return
             except Exception as e:
                 if not isinstance(e, asyncio.TimeoutError):
-                    self.logger.exception("Dispatch error")
+                    self.settings.logger.exception("Dispatch error")
                 continue
 
     async def start_polling(self):
@@ -301,22 +270,18 @@ class Bot:
             async for update in self.update_generator():
                 await self.queue.put(update)
         except asyncio.CancelledError:
-            self.logger.info("Polling cancelled")
+            self.settings.logger.info("Polling cancelled")
             return
         except Exception:
-            self.logger.exception("Polling cancelled unexpectedly")
+            self.settings.logger.exception("Polling cancelled unexpectedly")
 
     def stop_polling(self):
         self._polling = False
 
     async def update_generator(self):
-        # while True:
         while self._polling:
-            # if not self._polling:
-            #     raise StopAsyncIteration("Polling has been explicitly stopped")
             try:
-                # async with timeout(self.timeout, loop=self.loop):
-                async with timeout(self.timeout):
+                async with timeout(self.settings.timeout):
                     updates = await self.get_updates()
             except asyncio.TimeoutError:
                 continue
@@ -325,8 +290,8 @@ class Bot:
                     yield update
 
     async def get_updates(self):
-        self.logger.debug("Getting updates...")
-        response = await self.api.get_updates(self.timeout, self.update_id + 1)
+        self.settings.logger.debug("Getting updates...")
+        response = await self.api.get_updates(self.settings.timeout, self.update_id + 1)
         updates = response["result"]
         if updates:
             self.update_id = max(r["update_id"] for r in updates)
@@ -344,8 +309,6 @@ class Bot:
         await self.setup()
 
         # Run workers
-        # poller = asyncio.create_task(self.start_polling(), name="baymax_bot_poller")
-        # consumer = asyncio.create_task(self.consume(), name="baymax_bot_consumer")
         poller = asyncio.create_task(self.start_polling())
         consumer = asyncio.create_task(self.consume())
         await asyncio.gather(poller, consumer)
@@ -361,16 +324,11 @@ class Bot:
     # (probably chat.id if it's type is channel).
 
     async def set_state(self, update, state):
-        await self._storage.set(
-            f"state-{update['message']['from']['id']}", state
-        )
+        await self.storage.set(f"state-{update['message']['from']['id']}", state)
 
     async def get_state(self, update):
-        state = await self._storage.get(
-            f"state-{update['message']['from']['id']}"
-        )
+        state = await self.storage.get(f"state-{update['message']['from']['id']}")
         return state
 
     async def delete_state(self, update):
-        await self._storage.delete(f"state-{update['message']['from']['id']}")
-
+        await self.storage.delete(f"state-{update['message']['from']['id']}")

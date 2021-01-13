@@ -13,3 +13,5 @@ pytest-code.ini
 README.rst
 
 .python-version
+.vscode
+.env

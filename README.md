@@ -15,9 +15,9 @@ pip install baymax
 ### Basic usage example
 
 ```python
-from baymax.bot import Bot
+from baymax.default import default_bot_factory
 
-bot = Bot('token')
+bot = default_bot_factory(token='mytoken')
 
 @bot.on('/start')
 async def start_handler(update):
@@ -26,12 +26,16 @@ async def start_handler(update):
 bot.run()
 ```
 
+### Advanced usage
+
+By default baymax uses aiohttp client for making requests to Telegram API, you can replace it with your own implementation though, check `baymax.default` module to follow `baymax.bot.Bot` dependencies instantiation, you can replace both api component (`baymax.base.BaseTelegramApi`) and http client (`baymax.base.BaseHttpClient`) with your own implementations if your really need. Check `baymax.base` for other components that can be replaced.
+
 ### Middleware example
 
 ```python
 @bot.middleware
 async def message_logging_middleware(raw_update):
-    bot.logger.info('New update received: %s', raw_update['update_id'])
+    bot.settings.logger.info('New update received: %s', raw_update['update_id'])
 ```
 
 > NOTE: All middleware functions should be coroutines for now, even if they do not have asynchronous actions.
@@ -48,7 +52,7 @@ async def age_handler(update):
 async def age_input_handler(update):
     await bot.reply('Thank you!')
     age = int(update["message"]["text"])
-    bot.logger.info('User %d is %d years old', update["message"]["from"]["id"], age)
+    bot.settings.logger.info('User %d is %d years old', update["message"]["from"]["id"], age)
 ```
 
 ### Reply keyboard markup example
