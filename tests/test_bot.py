@@ -30,7 +30,7 @@ async def test_bot_hello(
             update = updates.pop()
             result.append(update)
         except IndexError:
-            await asyncio.sleep(bot.timeout)
+            pass
 
         return web.json_response({"result": result})
 

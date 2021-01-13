@@ -3,6 +3,7 @@ from dataclasses import asdict
 
 import pytest
 
+from baymax.default.api import NoneLessDict, MarkupJSONEncoder
 from baymax.typedefs.markups import (
     CallbackGame,
     InlineKeyboardButton,
@@ -11,15 +12,11 @@ from baymax.typedefs.markups import (
     ReplyKeyboardMarkup,
     ReplyKeyboardRemove,
     ForceReply,
-    MarkupJSONEncoder,
-    NoneLessDict,
 )
 
 
 def test_inline_keyboard_button():
-    inline_keyboard_button = InlineKeyboardButton(
-        "click me", callback_data="result"
-    )
+    inline_keyboard_button = InlineKeyboardButton("click me", callback_data="result")
     assert asdict(inline_keyboard_button) == {
         "text": "click me",
         "url": None,
@@ -173,9 +170,7 @@ def test_reply_keyboard_markup():
 
 
 def test_markup_json_encoder():
-    inline_keyboard_button = InlineKeyboardButton(
-        "click me", callback_data="result"
-    )
+    inline_keyboard_button = InlineKeyboardButton("click me", callback_data="result")
     with pytest.raises(TypeError):
         json.dumps(inline_keyboard_button)
 
@@ -186,4 +181,3 @@ def test_markup_json_encoder():
 
     with pytest.raises(TypeError):
         json.dumps(VeryCustomClass(), cls=MarkupJSONEncoder)
-
